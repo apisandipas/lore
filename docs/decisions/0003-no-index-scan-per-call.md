@@ -1,7 +1,7 @@
 ---
 type: Decision
 status: accepted
-anchors: [src/repo.ts, src/graph.ts]
+anchors: [src/repo.ts, src/graph.ts, src/tree.ts]
 ---
 # No index: scan the repo on every call
 

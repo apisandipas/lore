@@ -1,7 +1,7 @@
 ---
 type: Decision
 status: accepted
-anchors: [src/commands/freeze.ts]
+anchors: [src/commands/freeze.ts, src/plan.ts]
 ---
 # Efforts freeze the spec versions they plan against
 
