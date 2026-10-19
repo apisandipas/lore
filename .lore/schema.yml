@@ -1,6 +1,7 @@
 notes: docs
 ignore:
   - test/**
+  - README.md
 types:
   Spec:
     dir: docs/specs
