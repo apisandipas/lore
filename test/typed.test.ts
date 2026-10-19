@@ -226,8 +226,9 @@ describe("next", () => {
     writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
     expect((await c.lore("next")).out).toContain("docs/specs/auth.md changed since it was planned");
 
+    // Shipped over a changed spec: the change still needs a plan.
     writeFileSync(effort, setField(readFileSync(effort, "utf8"), "status", "done"));
-    expect((await c.lore("next")).out).toBe("nothing in progress; start a spec with lore-spec\n");
+    expect(await steps(c)).toEqual(["lore-plan docs/specs/auth.md"]);
   });
 
   test("ranks efforts before unplanned specs, and those before drafts", async () => {
@@ -243,6 +244,24 @@ describe("next", () => {
     expect((await c.lore("next")).out).toContain(
       "then:\n  lore-plan  docs/specs/billing.md  accepted spec with no effort\n  lore-spec  docs/specs/search.md  draft spec\n",
     );
+  });
+
+  test("plans a spec again when it changes after its efforts shipped", async () => {
+    const c = copy();
+    await c.lore("freeze", "reset");
+    const [spec, effort] = [join(c.dir, "docs/specs/auth.md"), join(c.dir, "docs/efforts/reset.md")];
+    writeFileSync(effort, setField(readFileSync(effort, "utf8"), "status", "done"));
+    expect((await c.lore("next")).out).toBe("nothing in progress; start a spec with lore-spec\n");
+
+    writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
+    expect((await c.lore("next")).out).toBe(
+      "next: lore-plan docs/specs/auth.md\n  Auth  (Spec, accepted)\n  spec changed since its efforts shipped\n",
+    );
+
+    // A new effort frozen against the changed spec answers it.
+    await c.lore("new", "Effort", "Sliding", "--link", "specs=auth");
+    await c.lore("freeze", "sliding");
+    expect(await steps(c)).toEqual(["lore-plan docs/efforts/sliding.md"]);
   });
 
   test("needs a type that freezes something", async () => {

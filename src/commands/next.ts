@@ -22,19 +22,27 @@ function workflowTypes(g: Graph): { efforts: Map<string, string[]>; specs: Set<s
   return { efforts, specs };
 }
 
+// Every effort on the spec is done, and none was frozen against its current text.
+function shippedAndChanged(spec: Note, efforts: Note[]): boolean {
+  if (!efforts.every((e) => e.status === DONE)) return false;
+  const hash = specHash(spec);
+  return !efforts.some((e) => frozenEntries(e).some(([path, h]) => path === spec.path && h === hash));
+}
+
 export function nextSteps(g: Graph): Step[] | undefined {
   const { efforts, specs } = workflowTypes(g);
   if (!efforts.size) return undefined;
 
   // Lower ranks first; within a rank, active efforts before planned ones.
   const ranked: { rank: number; active?: boolean; step: Step }[] = [];
-  const planned = new Set<Note>();
+  // Each spec's efforts, open or done.
+  const planned = new Map<Note, Note[]>();
 
   for (const note of g.notes) {
     const fields = note.type && efforts.get(note.type.toLowerCase());
     if (!fields) continue;
     const linked = note.links.filter((l) => l.field && fields.includes(l.field)).flatMap((l) => g.resolve(l.target).note ?? []);
-    for (const spec of linked) planned.add(spec);
+    for (const spec of linked) planned.set(spec, [...(planned.get(spec) ?? []), note]);
     if (note.status === DONE) continue;
 
     const active = note.status === ACTIVE;
@@ -63,6 +71,8 @@ export function nextSteps(g: Graph): Step[] | undefined {
       ranked.push({ rank: 5, step: { skill: "lore-spec", note, reason: `${note.status ?? "unstatused"} spec` } });
     } else if (!planned.has(note)) {
       ranked.push({ rank: 4, step: { skill: "lore-plan", note, reason: `${note.status} spec with no effort` } });
+    } else if (shippedAndChanged(note, planned.get(note)!)) {
+      ranked.push({ rank: 4, step: { skill: "lore-plan", note, reason: "spec changed since its efforts shipped" } });
     }
   }
 
