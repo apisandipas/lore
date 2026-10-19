@@ -1,6 +1,6 @@
 ---
 type: Effort
-status: active
+status: done
 specs: ["[[lore-cli]]"]
 frozen:
   docs/specs/lore-cli.md: 8ae622797434
