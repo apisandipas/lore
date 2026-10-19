@@ -6,7 +6,7 @@ anchors: [src/repo.ts, src/graph.ts]
 # No index: scan the repo on every call
 
 ## Context
-Rhizome keeps a SQLite index, copies it between worktrees, and can serve stale results. A few hundred notes plus an `rg` over the code takes milliseconds.
+An index has to be kept in sync, copied between worktrees, and can serve stale results. A few hundred notes plus an `rg` over the code takes milliseconds.
 
 ## Decision
 Every command rebuilds the graph from the working tree. No cache, no index, no state outside the repo.

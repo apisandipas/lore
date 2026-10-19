@@ -25,7 +25,7 @@ Auth package
   Owns session issuance and validation. Never import from pkg/billing.
 ```
 
-No index, no database, no embeddings, no network. Every command reads the working tree, so results are never stale. lore is a slim take on the core ideas of [Rhizome](https://github.com/atomicobject/rhizome).
+No index, no database, no embeddings, no network. Every command reads the working tree, so results are never stale.
 
 ## Install
 
