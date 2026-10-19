@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { removeField, setField, yamlString } from "../frontmatter";
-import { SUPERSEDED, type Graph } from "../graph";
+import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { idPattern } from "../schema";
 import { findNote, type Result } from "./shared";
@@ -46,6 +46,27 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
       return { code: 1, out: `lore new: ${note.type} has no '${SUPERSEDED}' status, so ${note.stem} cannot be superseded\n` };
     }
     olds.push(note);
+  }
+
+  // Every link is checked before anything is written.
+  const linked = new Map<string, Note[]>();
+  for (const { field, note: ref } of opts.links) {
+    // Superseding also rewrites the old note, so it keeps its own flag.
+    if (field === SUPERSEDES) return { code: 1, out: `lore new: --link cannot set ${SUPERSEDES}; use --supersedes <note>\n` };
+    const spec = def.fields[field];
+    if (!spec?.link) {
+      const fields = Object.keys(def.fields).filter((f) => def.fields[f]!.link && f !== SUPERSEDES);
+      return { code: 1, out: `lore new: '${field}' is not a link field of ${def.name} (link fields: ${fields.join(", ") || "none"})\n` };
+    }
+    const { note, error } = findNote(g, ref);
+    if (!note) return { code: 1, out: `lore new: --link ${field}: ${error}\n` };
+    if (note.type?.toLowerCase() !== spec.link.toLowerCase()) {
+      return { code: 1, out: `lore new: --link ${field}: ${note.stem} is a ${note.type ?? "untyped note"}; ${field} links to a ${spec.link}\n` };
+    }
+    const notes = linked.get(field) ?? [];
+    if (notes.length && !notes.includes(note) && !spec.many) return { code: 1, out: `lore new: ${field} takes one note, not several\n` };
+    if (!notes.includes(note)) notes.push(note);
+    linked.set(field, notes);
   }
 
   let stem = slugify(title) || "untitled";

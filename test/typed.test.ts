@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "../src/main";
@@ -103,6 +103,33 @@ describe("superseding", () => {
     const { code, out } = await lore("new", "Chore", "Tidy");
     expect(code).toBe(1);
     expect(out).toContain("types: Spec, Decision, Effort");
+  });
+});
+
+describe("new --link", () => {
+  test("refuses bad links and writes nothing", async () => {
+    const c = copy();
+    const schema = join(c.dir, ".lore/schema.yml");
+    // A one-note link field, to test giving it two.
+    writeFileSync(schema, readFileSync(schema, "utf8").replace("      status: { enum: [planned, active, done] }", "      status: { enum: [planned, active, done] }\n      parent: { link: Effort }"));
+    const cases: [string[], string][] = [
+      [["Effort", "X", "--link", "status=auth"], "'status' is not a link field of Effort (link fields: specs, parent)"],
+      [["Effort", "X", "--link", "specs=nope"], "--link specs: no note matches 'nope'"],
+      [["Effort", "X", "--link", "specs=0002"], "--link specs: 0002-rotating-tokens is a Decision; specs links to a Spec"],
+      [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to a Effort"],
+      [["Effort", "X", "--link", "specs=auth", "--link", "parent=reset", "--link", "parent=stray"], "--link parent: stray is a Chore; parent links to a Effort"],
+      [["Decision", "X", "--link", "supersedes=0002"], "--link cannot set supersedes; use --supersedes <note>"],
+    ];
+    for (const [args, message] of cases) {
+      const { code, out } = await c.lore("new", ...args);
+      expect(out).toBe(`lore new: ${message}\n`);
+      expect(code).toBe(1);
+    }
+    writeFileSync(join(c.dir, "docs/efforts/other.md"), "---\ntype: Effort\nspecs: [\"[[auth]]\"]\n---\n# Other\n");
+    const twice = await c.lore("new", "Effort", "X", "--link", "parent=reset", "--link", "parent=other");
+    expect(twice.out).toBe("lore new: parent takes one note, not several\n");
+    expect(existsSync(join(c.dir, "docs/efforts/x.md"))).toBe(false);
+    expect(existsSync(join(c.dir, "docs/decisions/0004-x.md"))).toBe(false);
   });
 });
 
