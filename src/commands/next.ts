@@ -1,55 +1,30 @@
 import { ACTIVE, DONE, DRAFT, RETIRED, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
-import type { TypeDef } from "../schema";
-import { frozenEntries, specHash } from "./freeze";
+import { drift, frozen, plans } from "../plan";
 import { label, type Result } from "./shared";
 
 // The skill that takes each step; see lore:0008-workflow-skills-and-lore-next.
 export type Skill = "lore-spec" | "lore-plan" | "lore-build" | "lore-ship";
 export type Step = { skill: Skill; note: Note; reason: string; item?: string };
 
-// Efforts are the types that freeze something; what they freeze are specs.
-function workflowTypes(g: Graph): { efforts: Set<TypeDef>; specs: string[] } {
-  const efforts = new Set(g.repo.config.schema.types.filter((t) => t.freeze?.length));
-  const specs = [...efforts].flatMap((t) => t.freeze!.flatMap((f) => t.fields[f]?.link ?? []));
-  return { efforts, specs };
-}
-
-// Every effort on the spec is done, and none was frozen against its current text.
-function shippedAndChanged(spec: Note, efforts: Note[]): boolean {
-  if (!efforts.every((e) => e.status === DONE)) return false;
-  const hash = specHash(spec);
-  return !efforts.some((e) => frozenEntries(e).some(([path, h]) => path === spec.path && h === hash));
-}
-
 export function nextSteps(g: Graph): Step[] | undefined {
-  const { efforts, specs } = workflowTypes(g);
-  if (!efforts.size) return undefined;
+  const p = plans(g);
+  if (!p) return undefined;
 
   // Lower ranks first; within a rank, active efforts before planned ones.
   const ranked: { rank: number; active?: boolean; step: Step }[] = [];
-  // Each spec's efforts, open or done.
-  const planned = new Map<Note, Note[]>();
 
-  for (const note of g.notes) {
-    if (!note.def || !efforts.has(note.def)) continue;
-    const fields = note.def.freeze!;
-    const linked = note.links.filter((l) => l.field && fields.includes(l.field)).flatMap((l) => g.resolve(l.target).note ?? []);
-    for (const spec of linked) planned.set(spec, [...(planned.get(spec) ?? []), note]);
+  for (const note of p.efforts) {
     if (note.status === DONE) continue;
-
     const active = note.status === ACTIVE;
-    const drifted = frozenEntries(note).filter(([path, hash]) => {
-      const spec = g.byPath.get(path);
-      return !spec || specHash(spec) !== hash;
-    });
+    const drifted = drift(g, note);
     const { done, total, next } = note.checklist;
     if (drifted.length) {
-      const what = drifted.map(([path]) => path).join(", ");
+      const what = drifted.map((d) => d.path).join(", ");
       ranked.push({ rank: 0, active, step: { skill: "lore-plan", note, reason: `${what} changed since it was planned` } });
     } else if (total && done === total) {
       ranked.push({ rank: 1, active, step: { skill: "lore-ship", note, reason: `all ${total} items done` } });
-    } else if (!frozenEntries(note).length || !total) {
+    } else if (!frozen(note).length || !total) {
       const reason = total ? "planned but not frozen" : "no checklist yet";
       ranked.push({ rank: 3, active, step: { skill: "lore-plan", note, reason } });
     } else {
@@ -57,14 +32,13 @@ export function nextSteps(g: Graph): Step[] | undefined {
     }
   }
 
-  for (const note of g.notes) {
-    if (!specs.some((s) => g.isA(note, s))) continue;
+  for (const note of p.specs) {
     if (note.status === RETIRED || note.status === SUPERSEDED) continue;
     if (!note.status || note.status === DRAFT) {
       ranked.push({ rank: 5, step: { skill: "lore-spec", note, reason: `${note.status ?? "unstatused"} spec` } });
-    } else if (!planned.has(note)) {
+    } else if (!p.effortsOf(note).length) {
       ranked.push({ rank: 4, step: { skill: "lore-plan", note, reason: `${note.status} spec with no effort` } });
-    } else if (shippedAndChanged(note, planned.get(note)!)) {
+    } else if (p.shippedAndChanged(note)) {
       ranked.push({ rank: 4, step: { skill: "lore-plan", note, reason: "spec changed since its efforts shipped" } });
     }
   }

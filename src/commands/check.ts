@@ -1,6 +1,6 @@
-import { DONE, SUPERSEDED, type Graph } from "../graph";
+import { SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
-import { frozenEntries, specHash } from "./freeze";
+import { drift } from "../plan";
 import { fieldProblems } from "../validate";
 import type { Result } from "./shared";
 
@@ -74,15 +74,9 @@ function checkSuperseding(g: Graph, note: Note, at: At) {
 }
 
 function checkFrozen(g: Graph, note: Note, at: At) {
-  // A done effort's frozen versions are history; lore next reports the change.
-  // Freezing itself: see lore:0007-efforts-freeze-spec-versions.
-  if (note.status === DONE) return;
-  for (const [path, hash] of frozenEntries(note)) {
-    const spec = g.byPath.get(path);
-    if (!spec) at(fieldLine(note, "frozen"), `frozen ${path} no longer exists`);
-    else if (specHash(spec) !== hash) {
-      at(fieldLine(note, "frozen"), `${path} changed since this was frozen; review the plan, then run lore freeze ${note.stem}`);
-    }
+  for (const { path, gone } of drift(g, note)) {
+    const message = gone ? `frozen ${path} no longer exists` : `${path} changed since this was frozen; review the plan, then run lore freeze ${note.stem}`;
+    at(fieldLine(note, "frozen"), message);
   }
 }
 

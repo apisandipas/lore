@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkGraph } from "../src/commands/check";
 import { loadGraph } from "../src/graph";
+import { drift, plans } from "../src/plan";
 import { run } from "../src/main";
 import { diskTree, memoryTree } from "../src/tree";
 
@@ -166,5 +167,39 @@ describe("validation", () => {
     expect((await run(["check"], tree)).out).toContain(`docs/efforts/e.md:2: ${message}`);
     expect((await run(["set", "e", "specs=nope"], tree)).out).toBe(`lore set: docs/efforts/e.md: ${message}\n`);
     expect((await run(["new", "Effort", "F", "--link", "specs=nope"], tree)).out).toBe(`lore new: --link ${message}\n`);
+  });
+});
+
+describe("plans", () => {
+  const files = {
+    "docs/specs/s.md": "---\nstatus: accepted\n---\n# S\n",
+    "docs/efforts/e.md": '---\nspecs: ["[[s]]"]\nstatus: active\n---\n# E\n\n- [ ] one\n',
+  };
+
+  test("an effort drifts when its spec's body changes or the spec goes, not when its status flips", async () => {
+    const tree = repo(files);
+    await run(["freeze", "e"], tree);
+    const e = () => loadGraph(tree).byPath.get("docs/efforts/e.md")!;
+    expect(drift(loadGraph(tree), e())).toEqual([]);
+
+    tree.write("docs/specs/s.md", "---\nstatus: retired\n---\n# S\n");
+    expect(drift(loadGraph(tree), e())).toEqual([]);
+
+    tree.write("docs/specs/s.md", "---\nstatus: accepted\n---\n# S\n\nMore.\n");
+    expect(drift(loadGraph(tree), e())).toEqual([{ path: "docs/specs/s.md", gone: false }]);
+
+    tree.write("docs/efforts/e.md", tree.read("docs/efforts/e.md")!.replace("status: active", "status: done"));
+    expect(drift(loadGraph(tree), e())).toEqual([]);
+    const g = loadGraph(tree);
+    expect(plans(g)!.shippedAndChanged(g.byPath.get("docs/specs/s.md")!)).toBe(true);
+  });
+
+  test("specs and efforts come from the schema's freeze fields", () => {
+    const g = loadGraph(repo(files));
+    const p = plans(g)!;
+    expect(p.efforts.map((n) => n.path)).toEqual(["docs/efforts/e.md"]);
+    expect(p.specs.map((n) => n.path)).toEqual(["docs/specs/s.md"]);
+    expect(p.effortsOf(p.specs[0]!)).toEqual(p.efforts);
+    expect(plans(loadGraph(memoryTree({ ".lore/schema.yml": "types:\n  Spec: {}\n" })))).toBeUndefined();
   });
 });
