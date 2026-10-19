@@ -32,5 +32,5 @@ Each type may set `dir` (notes there get the type without naming it), `id` (a `{
 ## Superseding
 A note whose `supersedes` field links to another replaces it ([[0006-decisions-are-superseded-never-edited]]). `context` shows the note in force with one line of history; `show` walks the whole chain. `check` requires the old note to be `superseded`, a superseded note to have a successor and no anchors, and code to cite the note in force.
 
-## Later phases
-Phase 3: the `lore-*` skills under `skills/` ([[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]).
+## Skills
+The workflow lives in the `lore-*` skills under `skills/`, not in the CLI ([[0005-cli-owns-mechanics-skills-own-process]], [[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]). Each ends by naming the next step, and `lore next` names the skill for each step it reports.

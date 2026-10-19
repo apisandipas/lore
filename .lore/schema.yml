@@ -1,6 +1,7 @@
 notes: docs
 ignore:
   - test/**
+  - skills/**
   - README.md
 types:
   Spec:

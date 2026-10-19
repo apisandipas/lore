@@ -80,6 +80,26 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 
 Every command except `help` and `version` takes `--json`.
 
+## Workflow skills
+
+The CLI enforces mechanics; the process lives in agent skills in [`skills/`](skills), which you can edit per project.
+
+```bash
+lore init                          # .lore/ schema, templates and WORKFLOW.md
+npx skills add apisandipas/lore    # the lore-* skills, per project or with -g
+```
+
+| Skill | Step |
+|---|---|
+| `lore-spec` | Write or revise a spec with the user until they accept it |
+| `lore-plan` | Turn an accepted spec into an Effort with a task checklist, and freeze it; re-plan when the spec drifts |
+| `lore-build` | Work the first open task, running `lore context` before every edit |
+| `lore-ship` | Check the work against the spec, bring notes up to date, mark the effort done |
+| `lore-decide` | Record a decision, or supersede one, at any step |
+| `lore-next` | Run `lore next` and hand off to the skill it names |
+
+Each skill ends with a line naming the next step, and reads `.lore/WORKFLOW.md` first so a project can change the flow. In a fresh session, ask for `lore-next`.
+
 ## Configuration
 
 `.lore/schema.yml` at the repo root. Without it, lore uses the git root and `docs/`, and checks links, citations and anchors but not types.
@@ -111,7 +131,7 @@ A field can be `required`, limited to an `enum`, or a `link` to another type, op
 
 ## Status
 
-Working now: everything above. Next: a set of agent skills for the flow `lore-spec` → `lore-plan` → `lore-build` → `lore-ship`, with `lore-decide` at any step. The skills will live in `skills/` and install with `npx skills add apisandipas/lore`.
+Working now: everything above. The skills are new and have not yet carried a real project from spec to ship.
 
 lore's design decisions are recorded as lore notes in [`docs/decisions`](docs/decisions); `lore list --summaries` in this repo is a quick tour.
 
