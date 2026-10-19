@@ -26,6 +26,12 @@ export type Graph = {
 
 export const SUPERSEDES = "supersedes";
 export const SUPERSEDED = "superseded";
+// Statuses from the schema `lore init` writes. A project that renames them
+// edits its skills too, so check and next read these names rather than guessing.
+export const DRAFT = "draft";
+export const ACTIVE = "active";
+export const DONE = "done";
+export const RETIRED = "retired";
 
 // Code cites notes as lore:<name> rather than double brackets; see lore:0004.
 const CITATION = String.raw`\blore:[A-Za-z0-9_./-]*[A-Za-z0-9_]`;

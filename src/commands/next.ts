@@ -1,4 +1,4 @@
-import { SUPERSEDED, type Graph } from "../graph";
+import { ACTIVE, DONE, DRAFT, RETIRED, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { frozenEntries, specHash } from "./freeze";
 import { label, type Result } from "./shared";
@@ -6,13 +6,6 @@ import { label, type Result } from "./shared";
 // The skill that takes each step; see lore:0008-workflow-skills-and-lore-next.
 export type Skill = "lore-spec" | "lore-plan" | "lore-build" | "lore-ship";
 export type Step = { skill: Skill; note: Note; reason: string; item?: string };
-
-// Statuses from the schema `lore init` writes. A project that renames them
-// edits its skills too, so next reads these names rather than guessing.
-const DRAFT = "draft";
-const RETIRED = "retired";
-const DONE = "done";
-const ACTIVE = "active";
 
 // Efforts are the types that freeze something; what they freeze are specs.
 function workflowTypes(g: Graph): { efforts: Map<string, string[]>; specs: Set<string> } {
