@@ -1,0 +1,25 @@
+lore: typed project notes linked to the code they govern
+
+Usage: lore <command> [args] [options]
+
+Commands:
+  context <file>...   Notes that govern these files, most relevant first
+                        --full            include note bodies
+                        --budget <tokens> cap the output (default 4000)
+  show <note>         A note with its links, backlinks, citations and anchors
+  list                Every note, one per line
+                        --type <type>     only notes of this type
+                        --summaries       add each note's summary
+  check               Report broken links, citations, anchors, schema errors,
+                      superseding mistakes and spec drift (exit 1 if any)
+  new <type> <title>  Create a note in the type's directory, numbered if the
+                      type has an id
+                        --supersedes <note> mark that note superseded and
+                                            move its anchors (repeatable)
+  freeze <note>       Record the current version of every spec the note links
+                      to; check then reports when one changes
+  help                Show this help
+  version             Print the version
+
+Every command but help and version takes --json.
+Notes link with [[name]]; code cites a note with lore:<name>.

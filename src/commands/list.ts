@@ -1,0 +1,22 @@
+import type { Graph } from "../graph";
+import { label, type Result } from "./shared";
+
+export function runList(g: Graph, opts: { type?: string; summaries: boolean; json: boolean }): Result {
+  const notes = g.notes.filter((n) => !opts.type || n.type?.toLowerCase() === opts.type.toLowerCase());
+  if (opts.json) {
+    const data = notes.map((n) => ({
+      path: n.path,
+      title: n.title,
+      type: n.type ?? null,
+      status: n.status ?? null,
+      ...(opts.summaries ? { summary: n.summary } : {}),
+    }));
+    return { code: 0, out: `${JSON.stringify(data, null, 2)}\n` };
+  }
+  if (!notes.length) return { code: 0, out: opts.type ? `no ${opts.type} notes\n` : "no notes\n" };
+  const lines = notes.map((n) => {
+    const head = `${n.path}  ${label(n)}`;
+    return opts.summaries && n.summary ? `${head}\n  ${n.summary}` : head;
+  });
+  return { code: 0, out: `${lines.join(opts.summaries ? "\n\n" : "\n")}\n` };
+}

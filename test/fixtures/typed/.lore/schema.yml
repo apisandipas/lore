@@ -1,0 +1,19 @@
+notes: docs
+types:
+  Spec:
+    dir: docs/specs
+    fields:
+      status: { enum: [draft, accepted, retired], required: true }
+  Decision:
+    dir: docs/decisions
+    id: "{n:4}"
+    summary: Decision
+    fields:
+      status: { enum: [proposed, accepted, superseded], required: true }
+      supersedes: { link: Decision, many: true }
+  Effort:
+    dir: docs/efforts
+    freeze: [specs]
+    fields:
+      specs: { link: Spec, many: true, required: true }
+      status: { enum: [planned, active, done] }

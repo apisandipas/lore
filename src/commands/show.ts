@@ -1,0 +1,78 @@
+import type { Graph } from "../graph";
+import type { Note } from "../parse";
+import { findNote, label, type Result } from "./shared";
+
+export function runShow(g: Graph, args: string[], opts: { json: boolean }): Result {
+  const [ref] = args;
+  if (!ref || args.length > 1) return { code: 2, out: "lore show: name exactly one note\n" };
+  const { note, error } = findNote(g, ref);
+  if (!note) return { code: 1, out: `lore show: ${error}\n` };
+
+  const linksOut = note.links.map((l) => ({ ...l, resolved: g.resolve(l.target).note?.path ?? null }));
+  const linksIn = g.backlinks(note).map((b) => ({ from: b.from.path, line: b.link.line, field: b.link.field ?? null }));
+  const citedBy = g.citations.filter((c) => g.resolve(c.target).note === note).map((c) => ({ file: c.file, line: c.line }));
+  const anchors = note.anchors.map((anchor) => ({ anchor, files: g.anchorFiles(anchor) }));
+  const history = chain(g, note);
+
+  if (opts.json) {
+    const data = {
+      path: note.path,
+      title: note.title,
+      type: note.type ?? null,
+      status: note.status ?? null,
+      summary: note.summary,
+      frontmatter: note.frontmatter,
+      linksOut,
+      linksIn,
+      citedBy,
+      anchors,
+      history: history.map((n) => ({ path: n.path, status: n.status ?? null })),
+      checklist: note.checklist,
+    };
+    return { code: 0, out: `${JSON.stringify(data, null, 2)}\n` };
+  }
+
+  const { done, total } = note.checklist;
+  const progress = total ? `\nChecklist: ${done} of ${total} done` : "";
+  const sections: string[] = [`${label(note)}\n${note.path}${note.summary ? `\n${note.summary}` : ""}${progress}`];
+  const section = (title: string, lines: string[]) => {
+    if (lines.length) sections.push(`${title}:\n${lines.map((l) => `  ${l}`).join("\n")}`);
+  };
+  if (history.length > 1) {
+    section(
+      "History (newest first)",
+      history.map((n) => `${n === note ? "▸ " : "  "}${n.stem}  (${n.status ?? "no status"})`),
+    );
+  }
+  section(
+    "Links to",
+    linksOut.map((l) => `${l.field ? `${l.field}: ` : ""}${l.target} → ${l.resolved ?? "unresolved"}`),
+  );
+  section(
+    "Linked from",
+    linksIn.map((l) => `${l.from}:${l.line}${l.field ? ` (${l.field})` : ""}`),
+  );
+  section(
+    "Cited by code",
+    citedBy.map((c) => `${c.file}:${c.line}`),
+  );
+  section(
+    "Anchors",
+    anchors.map((a) => `${a.anchor} → ${a.files.length === 1 ? "1 file" : `${a.files.length} files`}`),
+  );
+  return { code: 0, out: `${sections.join("\n\n")}\n` };
+}
+
+// Every decision in this note's supersede chain, newest first. Branches
+// (one note superseding two) are flattened in walk order.
+function chain(g: Graph, note: Note): Note[] {
+  const newest = g.current(note);
+  const out: Note[] = [];
+  const walk = (n: Note) => {
+    if (out.includes(n)) return;
+    out.push(n);
+    g.supersedes(n).forEach(walk);
+  };
+  walk(newest);
+  return out.includes(note) ? out : [note];
+}
