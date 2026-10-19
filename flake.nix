@@ -30,7 +30,10 @@
               --add-flags "run --no-install $out/share/lore/src/main.ts" \
               --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.ripgrep ]}
           '';
-          meta.mainProgram = "lore";
+          meta = {
+            mainProgram = "lore";
+            license = pkgs.lib.licenses.mit;
+          };
         };
       });
 

@@ -115,4 +115,4 @@ lore's design decisions are recorded as lore notes in [`docs/decisions`](docs/de
 
 ## License
 
-Not yet chosen.
+[MIT](LICENSE)
