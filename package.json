@@ -1,12 +1,19 @@
 {
-  "name": "lore",
+  "name": "lore-craft",
   "version": "0.1.0-alpha.1",
-  "private": true,
+  "description": "Typed Markdown notes (specs, decisions, efforts) linked to the code they govern",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apisandipas/lore.git"
+  },
   "bin": {
     "lore": "src/main.ts"
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit"
