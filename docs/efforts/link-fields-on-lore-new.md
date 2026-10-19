@@ -18,5 +18,5 @@ frozen:
 - [ ] Write link fields into the new note's frontmatter, after `status` and `supersedes` and before `anchors`: a `many` field as a list, any other field as one value. Test the exact file written, and that `lore check` passes on an Effort created with `--link specs=auth` in the typed fixture.
 - [ ] Document `--link` in `help.txt` and the README commands table, and include `--link` in the `--json` output of `new` as `links`.
 - [ ] Change `skills/lore-plan/SKILL.md` step 3 to create the effort with `lore new Effort "<title>" --link specs=<spec>` in place of editing frontmatter by hand.
-- [ ] Remove "Proposed; not built yet." from the spec, then `lore freeze link-fields-on-lore-new` again, since that edit changes the frozen spec.
 - [ ] Say "an" before a type name that starts with a vowel ("an Effort") in the messages of `check` and `new`, with a test.
+- [ ] Remove "Proposed; not built yet." from the spec, then `lore freeze link-fields-on-lore-new` again, since that edit changes the frozen spec.
