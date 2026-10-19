@@ -102,6 +102,22 @@ npx skills add apisandipas/lore    # the lore-* skills, per project or with -g
 
 Each skill ends with a line naming the next step, and reads `.lore/WORKFLOW.md` first so a project can change the flow. In a fresh session, ask for `lore-next`.
 
+Small work, such as a bug fix or a rename, skips the flow: no spec, no effort, just `lore context` before each edit and `lore check` after. The Size section of `.lore/WORKFLOW.md` says where the line falls, and a project can move it.
+
+### Claude Code hook
+
+The skills tell the agent to run `lore context` before every edit; a hook makes it happen whether or not a skill is loaded. [`hooks/claude-code.sh`](hooks/claude-code.sh) runs `lore context` on the file an `Edit` or `Write` is about to touch and hands the notes to the agent, saying nothing when no note applies. It needs `jq`. Copy it to `.claude/hooks/lore-context.sh` and add it to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Edit|MultiEdit|Write", "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lore-context.sh" }] }
+    ]
+  }
+}
+```
+
 <details>
 <summary><b>The flow in plain English, with a small feature</b></summary>
 

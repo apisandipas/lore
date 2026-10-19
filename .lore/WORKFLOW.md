@@ -9,6 +9,15 @@ How this project uses lore. The `lore-*` skills read this file before they act, 
 - **Decision** (`docs/decisions`, numbered): a choice, the context that forced it, and its consequences. Once `accepted` it is never edited; a change of mind is a new decision made with `lore new Decision "<title>" --supersedes <id>`.
 - **CONTEXT.md**: what a directory holds and the rules for code in it. It applies to everything beneath it.
 
+## Size
+
+Size the work before picking a skill. Most work is small, and small work skips the flow.
+
+- **Small**: a bug fix, a rename, a dependency bump, or any change you can state in one sentence and land in one commit, as long as no accepted spec or decision says otherwise. No spec and no effort. Run `lore context` on each file, make the change, then run the tests and `lore check`. If you made a choice a later reader would question, record it with **lore-decide**.
+- **Feature**: anything that changes what a spec says, adds behaviour a user would notice, or needs more than one commit. Use the flow below.
+
+When it is unclear, ask the user. If small work grows past one commit, stop and start a spec.
+
 ## Flow
 
 1. **lore-spec**: write or revise a spec until it is `accepted`.
