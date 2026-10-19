@@ -133,6 +133,21 @@ describe("new --link", () => {
   });
 });
 
+describe("new --link writes", () => {
+  test("list fields as lists and single fields as one value, in a note check accepts", async () => {
+    const c = copy();
+    const schema = join(c.dir, ".lore/schema.yml");
+    writeFileSync(schema, readFileSync(schema, "utf8").replace("      status: { enum: [planned, active, done] }", "      status: { enum: [planned, active, done] }\n      parent: { link: Effort }"));
+    const { code, out } = await c.lore("new", "Effort", "Sliding sessions", "--link", "specs=auth", "--link", "parent=reset", "--link", "specs=auth");
+    expect(out).toBe("created docs/efforts/sliding-sessions.md\n");
+    expect(code).toBe(0);
+    expect(c.read("docs/efforts/sliding-sessions.md")).toBe(
+      '---\ntype: Effort\nstatus: planned\nspecs: ["[[auth]]"]\nparent: "[[reset]]"\n---\n# Sliding sessions\n',
+    );
+    expect((await c.lore("check")).out).not.toContain("sliding-sessions");
+  });
+});
+
 describe("freeze", () => {
   test("records spec hashes; check reports drift when the spec body changes", async () => {
     const c = copy();

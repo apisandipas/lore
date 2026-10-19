@@ -84,6 +84,10 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const status = def.fields.status?.enum?.[0];
   if (status) frontmatter.push(`status: ${status}`);
   if (olds.length) frontmatter.push(`supersedes: [${olds.map((o) => yamlString(`[[${o.stem}]]`)).join(", ")}]`);
+  for (const [field, notes] of linked) {
+    const links = notes.map((n) => yamlString(`[[${n.stem}]]`));
+    frontmatter.push(def.fields[field]!.many ? `${field}: [${links.join(", ")}]` : `${field}: ${links[0]}`);
+  }
   // What the old decisions governed, the new one now governs.
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
   if (anchors.length) frontmatter.push(`anchors: [${anchors.map(yamlString).join(", ")}]`);
