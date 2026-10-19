@@ -1,7 +1,7 @@
 import { SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { frozenEntries, specHash } from "./freeze";
-import type { Result } from "./shared";
+import { a, type Result } from "./shared";
 
 export type Problem = { file: string; line: number; message: string };
 
@@ -69,7 +69,7 @@ function checkSchema(g: Graph, note: Note, at: At) {
       for (const l of links) {
         const linked = g.resolve(l.target).note;
         if (linked && linked.type?.toLowerCase() !== spec.link.toLowerCase()) {
-          at(line, `'${field}' links to ${linked.stem}, a ${linked.type ?? "untyped note"}; expected a ${spec.link}`);
+          at(line, `'${field}' links to ${linked.stem}, ${a(linked.type ?? "untyped note")}; expected ${a(spec.link)}`);
         }
       }
     }

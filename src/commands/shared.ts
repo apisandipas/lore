@@ -3,6 +3,11 @@ import type { Note } from "../parse";
 
 export type Result = { code: number; out: string };
 
+// "a Spec", "an Effort".
+export function a(noun: string): string {
+  return `${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`;
+}
+
 export function label(note: Note): string {
   const tags = [note.type, note.status].filter(Boolean).join(", ");
   return tags ? `${note.title}  (${tags})` : note.title;

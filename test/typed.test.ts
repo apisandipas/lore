@@ -116,8 +116,9 @@ describe("new --link", () => {
       [["Effort", "X", "--link", "status=auth"], "'status' is not a link field of Effort (link fields: specs, parent)"],
       [["Effort", "X", "--link", "specs=nope"], "--link specs: no note matches 'nope'"],
       [["Effort", "X", "--link", "specs=0002"], "--link specs: 0002-rotating-tokens is a Decision; specs links to a Spec"],
-      [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to a Effort"],
-      [["Effort", "X", "--link", "specs=auth", "--link", "parent=reset", "--link", "parent=stray"], "--link parent: stray is a Chore; parent links to a Effort"],
+      [["Effort", "X", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to an Effort"],
+      [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to an Effort"],
+      [["Effort", "X", "--link", "specs=auth", "--link", "parent=reset", "--link", "parent=stray"], "--link parent: stray is a Chore; parent links to an Effort"],
       [["Decision", "X", "--link", "supersedes=0002"], "--link cannot set supersedes; use --supersedes <note>"],
     ];
     for (const [args, message] of cases) {

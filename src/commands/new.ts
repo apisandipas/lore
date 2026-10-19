@@ -4,7 +4,7 @@ import { removeField, setField, yamlString } from "../frontmatter";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { idPattern } from "../schema";
-import { findNote, type Result } from "./shared";
+import { a, findNote, type Result } from "./shared";
 
 const USAGE = "usage: lore new <type> <title> [--supersedes <note>]... [--link <field>=<note>]...";
 
@@ -61,7 +61,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     const { note, error } = findNote(g, ref);
     if (!note) return { code: 1, out: `lore new: --link ${field}: ${error}\n` };
     if (note.type?.toLowerCase() !== spec.link.toLowerCase()) {
-      return { code: 1, out: `lore new: --link ${field}: ${note.stem} is a ${note.type ?? "untyped note"}; ${field} links to a ${spec.link}\n` };
+      return { code: 1, out: `lore new: --link ${field}: ${note.stem} is ${a(note.type ?? "untyped note")}; ${field} links to ${a(spec.link)}\n` };
     }
     const notes = linked.get(field) ?? [];
     if (notes.length && !notes.includes(note) && !spec.many) return { code: 1, out: `lore new: ${field} takes one note, not several\n` };
