@@ -22,6 +22,8 @@ export type Graph = {
   supersedes(note: Note): Note[];
   // Follows supersededBy to the decision in force now.
   current(note: Note): Note;
+  // Whether a note is of the named type, however either is capitalised.
+  isA(note: Note, type: string): boolean;
 };
 
 export const SUPERSEDES = "supersedes";
@@ -51,8 +53,9 @@ export function loadGraph(tree: Tree): Graph {
     .map((f) => {
       const note = parseNote(f, tree.read(f) ?? "");
       // A note in a type's directory has that type unless it names another.
-      note.type ??= typeForPath(schema, f)?.name;
-      const section = schema.find(note.type)?.summary;
+      note.def = note.type ? schema.find(note.type) : typeForPath(schema, f);
+      if (note.def) note.type = note.def.name;
+      const section = note.def?.summary;
       if (section && note.frontmatter.summary === undefined) note.summary = sectionSummary(note.body, section) ?? note.summary;
       return note;
     });
@@ -123,7 +126,12 @@ export function loadGraph(tree: Tree): Graph {
     return at;
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, backlinks, anchorFiles, supersedes, supersededBy, current };
+  const isA = (note: Note, type: string): boolean => {
+    const def = schema.find(type);
+    return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
+  };
+
+  return { repo, notes, byPath, citations, isNoteFile, resolve, backlinks, anchorFiles, supersedes, supersededBy, current, isA };
 }
 
 // How narrowly a path anchor targets code: the literal prefix before any glob.

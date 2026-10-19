@@ -1,5 +1,6 @@
 import { ACTIVE, DONE, DRAFT, RETIRED, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
+import type { TypeDef } from "../schema";
 import { frozenEntries, specHash } from "./freeze";
 import { label, type Result } from "./shared";
 
@@ -8,17 +9,9 @@ export type Skill = "lore-spec" | "lore-plan" | "lore-build" | "lore-ship";
 export type Step = { skill: Skill; note: Note; reason: string; item?: string };
 
 // Efforts are the types that freeze something; what they freeze are specs.
-function workflowTypes(g: Graph): { efforts: Map<string, string[]>; specs: Set<string> } {
-  const efforts = new Map<string, string[]>();
-  const specs = new Set<string>();
-  for (const t of g.repo.config.schema.types) {
-    if (!t.freeze?.length) continue;
-    efforts.set(t.name.toLowerCase(), t.freeze);
-    for (const f of t.freeze) {
-      const link = t.fields[f]?.link;
-      if (link) specs.add(link.toLowerCase());
-    }
-  }
+function workflowTypes(g: Graph): { efforts: Set<TypeDef>; specs: string[] } {
+  const efforts = new Set(g.repo.config.schema.types.filter((t) => t.freeze?.length));
+  const specs = [...efforts].flatMap((t) => t.freeze!.flatMap((f) => t.fields[f]?.link ?? []));
   return { efforts, specs };
 }
 
@@ -39,8 +32,8 @@ export function nextSteps(g: Graph): Step[] | undefined {
   const planned = new Map<Note, Note[]>();
 
   for (const note of g.notes) {
-    const fields = note.type && efforts.get(note.type.toLowerCase());
-    if (!fields) continue;
+    if (!note.def || !efforts.has(note.def)) continue;
+    const fields = note.def.freeze!;
     const linked = note.links.filter((l) => l.field && fields.includes(l.field)).flatMap((l) => g.resolve(l.target).note ?? []);
     for (const spec of linked) planned.set(spec, [...(planned.get(spec) ?? []), note]);
     if (note.status === DONE) continue;
@@ -65,7 +58,7 @@ export function nextSteps(g: Graph): Step[] | undefined {
   }
 
   for (const note of g.notes) {
-    if (!note.type || !specs.has(note.type.toLowerCase())) continue;
+    if (!specs.some((s) => g.isA(note, s))) continue;
     if (note.status === RETIRED || note.status === SUPERSEDED) continue;
     if (!note.status || note.status === DRAFT) {
       ranked.push({ rank: 5, step: { skill: "lore-spec", note, reason: `${note.status ?? "unstatused"} spec` } });

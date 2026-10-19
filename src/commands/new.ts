@@ -39,7 +39,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     if (note.status === SUPERSEDED) {
       return { code: 1, out: `lore new: ${note.stem} is already superseded by ${g.current(note).stem}\n` };
     }
-    const allowed = schema.find(note.type)?.fields.status?.enum;
+    const allowed = note.def?.fields.status?.enum;
     if (allowed && !allowed.includes(SUPERSEDED)) {
       return { code: 1, out: `lore new: ${note.type} has no '${SUPERSEDED}' status, so ${note.stem} cannot be superseded\n` };
     }
@@ -67,7 +67,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   let stem = slugify(title) || "untitled";
   if (def.id) {
     const id = idPattern(def.id);
-    const inType = g.notes.filter((n) => n.type?.toLowerCase() === def.name.toLowerCase());
+    const inType = g.notes.filter((n) => n.def === def);
     const next = Math.max(0, ...inType.map((n) => id.number(n.stem) ?? 0)) + 1;
     stem = `${id.format(next)}-${stem}`;
   }

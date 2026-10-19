@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import type { TypeDef } from "./schema";
 
 export type Link = { target: string; line: number; field?: string };
 
@@ -9,6 +10,8 @@ export type Note = {
   frontmatterError?: string;
   fieldLines: Record<string, number>;
   type?: string;
+  // The schema type, attached by the graph; `type` is then its exact name.
+  def?: TypeDef;
   status?: string;
   title: string;
   summary: string;

@@ -37,7 +37,7 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
   const { note, error } = findNote(g, ref);
   if (!note) return { code: 1, out: `lore set: ${error}\n` };
   const { schema } = g.repo.config;
-  const fields = { ...COMMON, ...schema.find(note.type)?.fields };
+  const fields = { ...COMMON, ...note.def?.fields };
   const fail = (message: string): Result => ({ code: 1, out: `lore set: ${note.path}: ${message}\n` });
 
   // Every assignment is checked before anything is written.

@@ -21,7 +21,7 @@ export async function runFreeze(g: Graph, args: string[], opts: { json: boolean 
   if (!note) return { code: 1, out: `lore freeze: ${error}\n` };
 
   // The schema names the fields to freeze; otherwise every link field but supersedes.
-  const fields = g.repo.config.schema.find(note.type)?.freeze;
+  const fields = note.def?.freeze;
   const links = note.links.filter((l) => l.field && l.field !== SUPERSEDES && (!fields || fields.includes(l.field)));
   const targets: Note[] = [];
   for (const link of links) {

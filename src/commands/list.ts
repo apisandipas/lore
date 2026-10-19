@@ -2,7 +2,7 @@ import type { Graph } from "../graph";
 import { label, type Result } from "./shared";
 
 export function runList(g: Graph, opts: { type?: string; summaries: boolean; json: boolean }): Result {
-  const notes = g.notes.filter((n) => !opts.type || n.type?.toLowerCase() === opts.type.toLowerCase());
+  const notes = g.notes.filter((n) => !opts.type || g.isA(n, opts.type));
   if (opts.json) {
     const data = notes.map((n) => ({
       path: n.path,

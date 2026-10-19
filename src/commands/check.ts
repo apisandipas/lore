@@ -44,7 +44,7 @@ type At = (line: number, message: string) => void;
 function checkSchema(g: Graph, note: Note, at: At) {
   const { schema } = g.repo.config;
   if (!schema.types.length || !note.type) return;
-  const def = schema.find(note.type);
+  const { def } = note;
   if (!def) {
     at(fieldLine(note, "type"), `type '${note.type}' is not in .lore/schema.yml`);
     return;
@@ -68,7 +68,7 @@ function checkSchema(g: Graph, note: Note, at: At) {
       if (links.length < values.length) at(line, `'${field}' should link with [[name]]`);
       for (const l of links) {
         const linked = g.resolve(l.target).note;
-        if (linked && linked.type?.toLowerCase() !== spec.link.toLowerCase()) {
+        if (linked && !g.isA(linked, spec.link)) {
           at(line, `'${field}' links to ${linked.stem}, ${a(linked.type ?? "untyped note")}; expected ${a(spec.link)}`);
         }
       }

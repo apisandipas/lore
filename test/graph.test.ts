@@ -121,3 +121,17 @@ describe("writes", () => {
     expect(tree.read("docs/efforts/e.md")).toContain("- [ ] example\n```\n- [x] one\n- [x] two\n- [ ] three");
   });
 });
+
+describe("types", () => {
+  test("a note's type is matched to the schema whatever its case, and reported by its schema name", async () => {
+    const tree = repo({
+      "docs/specs/s.md": "---\nstatus: accepted\n---\n# S\n",
+      "docs/other/e.md": '---\ntype: effort\nspecs: ["[[s]]"]\n---\n# E\n\n- [ ] one\n',
+    });
+    const g = loadGraph(tree);
+    const e = g.byPath.get("docs/other/e.md")!;
+    expect(e.type).toBe("Effort");
+    expect(g.isA(e, "EFFORT")).toBe(true);
+    expect(JSON.parse((await run(["list", "--type", "effort", "--json"], tree)).out).map((n: { path: string }) => n.path)).toEqual(["docs/other/e.md"]);
+  });
+});

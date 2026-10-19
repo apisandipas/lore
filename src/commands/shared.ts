@@ -29,7 +29,7 @@ export function findNote(g: Graph, ref: string): { note?: Note; error?: string }
 export function linkTarget(g: Graph, field: string, link: string, ref: string): { note?: Note; error?: string } {
   const { note, error } = findNote(g, ref);
   if (!note) return { error: `${field}: ${error}` };
-  if (note.type?.toLowerCase() !== link.toLowerCase()) {
+  if (!g.isA(note, link)) {
     return { error: `${field}: ${note.stem} is ${a(note.type ?? "untyped note")}; ${field} links to ${a(link)}` };
   }
   return { note };
