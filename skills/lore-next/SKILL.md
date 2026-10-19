@@ -1,6 +1,6 @@
 ---
 name: lore-next
-description: Say which lore workflow step comes next in a repo that uses lore (typed Markdown notes under docs/ with a .lore/ directory), and which lore-* skill takes it. Use when resuming work after a break or in a fresh session, when asked "what's next", "where was I" or "what should I work on", or before starting any of lore-spec, lore-plan, lore-build or lore-ship without a named target.
+description: Say which lore workflow step comes next in a repo that uses lore (typed Markdown notes under docs/ with a .lore/ directory), and which lore-* skill takes it. Use when resuming work after a break or in a fresh session, when asked "what's next", "where was I" or "what should I work on", when the user brings a task and it is unclear which step it needs, or before starting any of lore-spec, lore-plan, lore-build or lore-ship without a named target.
 ---
 
 # lore-next
@@ -9,6 +9,7 @@ description: Say which lore workflow step comes next in a repo that uses lore (t
 
 ## Steps
 
+0. **If the user brought a task of their own** rather than asking what is next, size it first, using the Size section of `.lore/WORKFLOW.md`. Small work needs no skill: do it under the rules there and stop. A feature goes to `lore-spec`.
 1. Run `lore next`. If it fails:
    - No `.lore/` in the repo: suggest `lore init`, which writes the schema, templates and `.lore/WORKFLOW.md`. Stop there.
    - "no type in .lore/schema.yml sets freeze": the schema has no Effort type. Show the user `.lore/schema.yml` and suggest adding one like the default `lore init` writes.
