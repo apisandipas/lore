@@ -100,6 +100,68 @@ npx skills add apisandipas/lore    # the lore-* skills, per project or with -g
 
 Each skill ends with a line naming the next step, and reads `.lore/WORKFLOW.md` first so a project can change the flow. In a fresh session, ask for `lore-next`.
 
+<details>
+<summary><b>The flow in plain English, with a small feature</b></summary>
+
+<br>
+
+Think of lore as a notebook that lives in your repo, with three kinds of page:
+
+- **Spec**: what you want.
+- **Effort**: the to-do list for building it.
+- **Decision**: why you chose X over Y.
+
+The agent does the writing. Your job is mostly answering questions and saying yes or no. `lore next` reads the notebook and says which step is next, so you never have to remember where you were.
+
+Say you have a small todo app and want tasks to have due dates.
+
+**0. Once per repo.** Run `lore init` and install the skills.
+
+**1. Say what you want: `lore-spec`.** You say "use lore-spec, I want due dates on tasks". The agent creates `docs/specs/due-dates.md` and asks you questions. Can a task have no due date? What happens when it passes: does it turn red, does it send an email? Days only, or times too? It writes your answers down:
+
+```markdown
+## Behaviour
+- A task may have a due date (a day, no time).
+- Overdue tasks show in red at the top of the list.
+
+## Out of scope
+- Reminders or emails.
+```
+
+When you say it's right, the spec becomes `accepted`. `lore next` now says `lore-plan`: you know what you want, but there's no plan yet.
+
+**2. Plan the work: `lore-plan`.** You say "go ahead". The agent reads your code and writes `docs/efforts/due-dates.md`:
+
+```markdown
+## Tasks
+- [ ] Add a due_date column to tasks, with a migration
+- [ ] Show a date picker when editing a task
+- [ ] Sort overdue tasks first and colour them red
+```
+
+You look it over. When you agree, the agent freezes the plan, which records the exact version of the spec it was planned against. `lore next` now says `lore-build`, starting with the first task.
+
+**3. Build it, one task at a time: `lore-build`.** You say "go ahead". For each task the agent asks lore which notes govern the files it is about to touch, follows them, does the task, runs the tests, and ticks the box. Then it does the next one, or stops if you asked for just one. The next task is always the first unticked box, so you can close the laptop at any point. Tomorrow, `lore next` tells you exactly where you were. When every box is ticked, `lore next` says `lore-ship`.
+
+**4. Finish: `lore-ship`.** The agent checks the work against the spec: do tasks have dates, are overdue ones red? It confirms the tests and `lore check` pass, and marks the effort `done`. `lore next` now says nothing is in progress.
+
+**If you change your mind.** Halfway through building, you decide you do want reminder emails. Edit the spec. Because the plan was frozen, lore sees that the spec changed under it, and `lore next` sends you back to `lore-plan` rather than letting the old plan carry on.
+
+**Recording a choice: `lore-decide`.** The agent has to choose between storing dates as text or as real dates, and the reason matters. It writes a short Decision: "Due dates are stored as real dates, because sorting text dates breaks." From then on, whenever anyone is about to edit the task code, lore shows that decision first, so nobody "fixes" it back by accident.
+
+**What you actually type:**
+
+| You say | What happens |
+|---|---|
+| "use lore-spec, I want X" | The agent interviews you and writes down what you want |
+| "go ahead" | The agent does the step it just named |
+| "use lore-next", or "where was I?" | The agent tells you what's next |
+| "yes", or "no, change Y" | You approve the spec and the plan |
+
+After the first message, it's mostly "go ahead".
+
+</details>
+
 ## Configuration
 
 `.lore/schema.yml` at the repo root. Without it, lore uses the git root and `docs/`, and checks links, citations and anchors but not types.
