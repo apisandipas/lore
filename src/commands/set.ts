@@ -2,7 +2,7 @@ import { link, render, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";
 import type { FieldDef } from "../schema";
-import { findNote, linkTarget, type Result } from "./shared";
+import { linkTarget, type Result } from "./shared";
 
 const USAGE = "usage: lore set <note> <field>=<value>... (or <field>+=<value> on a list field)";
 const ASSIGNMENT = /^([A-Za-z_][\w-]*)(\+?=)(.+)$/;
@@ -34,7 +34,7 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
     changes.set(field, change);
   }
 
-  const { note, error } = findNote(g, ref);
+  const { note, error } = g.find(ref);
   if (!note) return { code: 1, out: `lore set: ${error}\n` };
   const { schema } = g.repo.config;
   const fields = { ...COMMON, ...note.def?.fields };

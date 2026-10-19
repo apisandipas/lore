@@ -2,7 +2,7 @@ import { createNote, link, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { idPattern } from "../schema";
-import { findNote, linkTarget, type Result } from "./shared";
+import { linkTarget, type Result } from "./shared";
 
 const USAGE = "usage: lore new <type> <title> [--supersedes <note>]... [--link <field>=<note>]...";
 
@@ -34,7 +34,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
 
   const olds: Note[] = [];
   for (const ref of opts.supersedes) {
-    const { note, error } = findNote(g, ref);
+    const { note, error } = g.find(ref);
     if (!note) return { code: 1, out: `lore new: --supersedes ${error}\n` };
     if (note.status === SUPERSEDED) {
       return { code: 1, out: `lore new: ${note.stem} is already superseded by ${g.current(note).stem}\n` };

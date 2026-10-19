@@ -14,7 +14,11 @@ export type Graph = {
   byPath: Map<string, Note>;
   citations: Citation[];
   isNoteFile(file: string): boolean;
+  // A link target or a name from the command line: a path, a filename, an
+  // alias, or a number prefix. An exact path wins over an ambiguous name.
   resolve(target: string): Resolution;
+  // resolve, with an error saying why nothing or too much matched.
+  find(ref: string): { note?: Note; error?: string };
   backlinks(note: Note): Backlink[];
   anchorFiles(anchor: string): string[];
   // Notes whose `supersedes` field links to this one, and the ones it links to.
@@ -75,7 +79,18 @@ export function loadGraph(tree: Tree): Graph {
     );
     // An id alone ("0007", "D-12") names the note whose filename starts with it.
     if (!candidates.length && /\d$/.test(t)) candidates = notes.filter((n) => n.stem.toLowerCase().startsWith(`${t}-`));
+    const exact = candidates.length > 1 ? byPath.get(target.trim().replace(/^\.\//, "")) : undefined;
+    if (exact) return { note: exact, candidates: [exact] };
     return { note: candidates.length === 1 ? candidates[0] : undefined, candidates };
+  };
+
+  const find = (ref: string): { note?: Note; error?: string } => {
+    const r = resolve(ref);
+    if (r.note) return { note: r.note };
+    if (r.candidates.length > 1) {
+      return { error: `'${ref}' matches ${r.candidates.length} notes:\n${r.candidates.map((n) => `  ${n.path}`).join("\n")}` };
+    }
+    return { error: `no note matches '${ref}'` };
   };
 
   const citations = tree
@@ -131,7 +146,7 @@ export function loadGraph(tree: Tree): Graph {
     return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, backlinks, anchorFiles, supersedes, supersededBy, current, isA };
+  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchorFiles, supersedes, supersededBy, current, isA };
 }
 
 // How narrowly a path anchor targets code: the literal prefix before any glob.

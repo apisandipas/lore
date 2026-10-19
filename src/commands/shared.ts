@@ -13,21 +13,9 @@ export function label(note: Note): string {
   return tags ? `${note.title}  (${tags})` : note.title;
 }
 
-// A note named on the command line: a link target, or a path to the file.
-export function findNote(g: Graph, ref: string): { note?: Note; error?: string } {
-  const r = g.resolve(ref);
-  if (r.note) return { note: r.note };
-  const byPath = g.byPath.get(ref.replace(/^\.\//, ""));
-  if (byPath) return { note: byPath };
-  if (r.candidates.length > 1) {
-    return { error: `'${ref}' matches ${r.candidates.length} notes:\n${r.candidates.map((n) => `  ${n.path}`).join("\n")}` };
-  }
-  return { error: `no note matches '${ref}'` };
-}
-
 // A note named for a link field: exactly one note, of the type the field links to.
 export function linkTarget(g: Graph, field: string, link: string, ref: string): { note?: Note; error?: string } {
-  const { note, error } = findNote(g, ref);
+  const { note, error } = g.find(ref);
   if (!note) return { error: `${field}: ${error}` };
   if (!g.isA(note, link)) {
     return { error: `${field}: ${note.stem} is ${a(note.type ?? "untyped note")}; ${field} links to ${a(link)}` };

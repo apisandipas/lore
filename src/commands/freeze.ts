@@ -1,7 +1,7 @@
 import { updateNote } from "../edit";
 import { SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
-import { findNote, type Result } from "./shared";
+import { type Result } from "./shared";
 
 // Hashes the body only, so a status flip in frontmatter is not drift.
 export function specHash(note: Note): string {
@@ -17,7 +17,7 @@ export function frozenEntries(note: Note): [string, string][] {
 export async function runFreeze(g: Graph, args: string[], opts: { json: boolean }): Promise<Result> {
   const [ref] = args;
   if (!ref || args.length > 1) return { code: 2, out: "lore freeze: name exactly one note\n" };
-  const { note, error } = findNote(g, ref);
+  const { note, error } = g.find(ref);
   if (!note) return { code: 1, out: `lore freeze: ${error}\n` };
 
   // The schema names the fields to freeze; otherwise every link field but supersedes.

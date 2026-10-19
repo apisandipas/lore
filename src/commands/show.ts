@@ -1,11 +1,11 @@
 import type { Graph } from "../graph";
 import type { Note } from "../parse";
-import { findNote, label, type Result } from "./shared";
+import { label, type Result } from "./shared";
 
 export function runShow(g: Graph, args: string[], opts: { json: boolean }): Result {
   const [ref] = args;
   if (!ref || args.length > 1) return { code: 2, out: "lore show: name exactly one note\n" };
-  const { note, error } = findNote(g, ref);
+  const { note, error } = g.find(ref);
   if (!note) return { code: 1, out: `lore show: ${error}\n` };
 
   const linksOut = note.links.map((l) => ({ ...l, resolved: g.resolve(l.target).note?.path ?? null }));

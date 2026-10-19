@@ -135,3 +135,23 @@ describe("types", () => {
     expect(JSON.parse((await run(["list", "--type", "effort", "--json"], tree)).out).map((n: { path: string }) => n.path)).toEqual(["docs/other/e.md"]);
   });
 });
+
+describe("resolving", () => {
+  const tree = () =>
+    repo({
+      "CONTEXT.md": "# Root\n\nSee [[docs/a]].\n",
+      "src/CONTEXT.md": "# Src\n",
+      "docs/a.md": "# A\n\nRoot rules: [[CONTEXT.md]]. Either: [[CONTEXT]].\n",
+    });
+
+  test("an exact path wins over an ambiguous name, in links and on the command line", async () => {
+    const g = loadGraph(tree());
+    expect(g.resolve("CONTEXT.md").note?.path).toBe("CONTEXT.md");
+    expect(g.find("./src/CONTEXT.md").note?.path).toBe("src/CONTEXT.md");
+    expect(checkGraph(g).map((p) => p.message)).toEqual(["link 'CONTEXT' is ambiguous: it matches 2 notes"]);
+  });
+
+  test("an ambiguous name lists what it matches", () => {
+    expect(loadGraph(tree()).find("context").error).toBe("'context' matches 2 notes:\n  CONTEXT.md\n  src/CONTEXT.md");
+  });
+});

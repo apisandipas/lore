@@ -1,11 +1,11 @@
 import type { Graph } from "../graph";
 import { tickNote } from "../edit";
-import { findNote, type Result } from "./shared";
+import { type Result } from "./shared";
 
 export async function runTick(g: Graph, args: string[], opts: { json: boolean }): Promise<Result> {
   const [ref] = args;
   if (!ref || args.length > 1) return { code: 2, out: "lore tick: name exactly one note\n" };
-  const { note, error } = findNote(g, ref);
+  const { note, error } = g.find(ref);
   if (!note) return { code: 1, out: `lore tick: ${error}\n` };
 
   const { next: ticked, total } = note.checklist;
