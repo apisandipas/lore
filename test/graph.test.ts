@@ -91,3 +91,33 @@ describe("failures", () => {
     }
   });
 });
+
+describe("writes", () => {
+  test("a value YAML would read as a number stays a string", async () => {
+    const tree = repo({ "docs/specs/s.md": "---\nstatus: draft\n---\n# S\n" });
+    await run(["set", "s", "title=2024"], tree);
+    expect(tree.read("docs/specs/s.md")).toBe('---\nstatus: draft\ntitle: "2024"\n---\n# S\n');
+    expect(JSON.parse((await run(["show", "s", "--json"], tree)).out).title).toBe("2024");
+  });
+
+  test("freeze writes a hash of all digits so it reads back as a string", async () => {
+    // This body hashes to 451752723810, which unquoted YAML reads as a number.
+    const tree = repo({
+      "docs/specs/s.md": "---\nstatus: accepted\n---\n# S\n\n1148\n",
+      "docs/efforts/e.md": '---\nspecs: ["[[s]]"]\n---\n# E\n\n- [ ] one\n',
+    });
+    const { frozen } = JSON.parse((await run(["freeze", "e", "--json"], tree)).out);
+    const g = loadGraph(tree);
+    expect(g.byPath.get("docs/efforts/e.md")!.frontmatter.frozen).toEqual({ [frozen[0].path]: frozen[0].hash });
+    expect(frozen[0].hash).toBe("451752723810");
+    expect((await run(["check"], tree)).code).toBe(0);
+    tree.write("docs/specs/s.md", "---\nstatus: accepted\n---\n# S\n\nchanged\n");
+    expect((await run(["check"], tree)).out).toContain("docs/specs/s.md changed since this was frozen");
+  });
+
+  test("tick ticks the first open item, skipping fenced examples", async () => {
+    const tree = repo({ "docs/efforts/e.md": "# E\n\n```\n- [ ] example\n```\n- [x] one\n- [ ] two\n- [ ] three\n" });
+    expect((await run(["tick", "e"], tree)).out).toBe("ticked docs/efforts/e.md: two\nnext: three  (2 of 3 done)\n");
+    expect(tree.read("docs/efforts/e.md")).toContain("- [ ] example\n```\n- [x] one\n- [x] two\n- [ ] three");
+  });
+});

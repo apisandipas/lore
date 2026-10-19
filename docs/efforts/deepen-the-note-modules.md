@@ -20,7 +20,7 @@ The three Strong candidates from the 2026-10-19 architecture review, plus the in
 
 - [x] Add the tree adapter (disk and memory); repo, graph and the writing commands go through it, with a memory-tree test helper and Graph-level tests for check's required-field and `many` errors
 - [x] Exit 1, not 2, when a command fails unexpectedly (an unreadable schema.yml, rg missing), with tests
-- [ ] Add the note-editing module; new, set, freeze and tick write through it; delete frontmatter.ts; round-trip tests, including a frozen hash of all digits and `lore set <note> title=2024`
+- [x] Add the note-editing module; new, set, freeze and tick write through it; delete frontmatter.ts; round-trip tests, including a frozen hash of all digits and `lore set <note> title=2024`
 - [ ] Graph attaches each note's schema type at load; commands compare types by it instead of lowercasing names
 - [ ] One resolution policy on Graph for CLI references and links (an exact path wins); findNote moves out of shared.ts; test `[[CONTEXT.md]]`
 - [ ] One field validator used by check, new and set; linkTarget and the duplicate link-type check go

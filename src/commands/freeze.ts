@@ -1,4 +1,4 @@
-import { setField } from "../frontmatter";
+import { updateNote } from "../edit";
 import { SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { findNote, type Result } from "./shared";
@@ -35,8 +35,7 @@ export async function runFreeze(g: Graph, args: string[], opts: { json: boolean 
   }
 
   const frozen = targets.map((t) => ({ path: t.path, hash: specHash(t) }));
-  const { tree } = g.repo;
-  tree.write(note.path, setField(tree.read(note.path)!, "frozen", `\n${frozen.map((f) => `  ${f.path}: ${f.hash}`).join("\n")}`));
+  updateNote(g.repo.tree, note.path, { frozen: Object.fromEntries(frozen.map((f) => [f.path, f.hash])) });
 
   if (opts.json) return { code: 0, out: `${JSON.stringify({ path: note.path, frozen }, null, 2)}\n` };
   return { code: 0, out: `froze ${note.path} against:\n${frozen.map((f) => `  ${f.path} ${f.hash}`).join("\n")}\n` };

@@ -1,4 +1,4 @@
-import { removeField, setField, yamlString } from "../frontmatter";
+import { createNote, link, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { idPattern } from "../schema";
@@ -75,23 +75,23 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const { tree } = g.repo;
   if (tree.exists(path)) return { code: 1, out: `lore new: ${path} already exists\n` };
 
-  const frontmatter = [`type: ${def.name}`];
+  const fields: Fields = { type: def.name };
   const status = def.fields.status?.enum?.[0];
-  if (status) frontmatter.push(`status: ${status}`);
-  if (olds.length) frontmatter.push(`supersedes: [${olds.map((o) => yamlString(`[[${o.stem}]]`)).join(", ")}]`);
+  if (status) fields.status = status;
+  if (olds.length) fields[SUPERSEDES] = olds.map((o) => link(o.stem));
   for (const [field, notes] of linked) {
-    const links = notes.map((n) => yamlString(`[[${n.stem}]]`));
-    frontmatter.push(def.fields[field]!.many ? `${field}: [${links.join(", ")}]` : `${field}: ${links[0]}`);
+    const links = notes.map((n) => link(n.stem));
+    fields[field] = def.fields[field]!.many ? links : links[0]!;
   }
   // What the old decisions governed, the new one now governs.
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
-  if (anchors.length) frontmatter.push(`anchors: [${anchors.map(yamlString).join(", ")}]`);
+  if (anchors.length) fields.anchors = anchors;
 
   const template = tree.read(`.lore/templates/${def.name}.md`);
   const body = template?.replaceAll("{{title}}", title) ?? `# ${title}\n`;
 
-  tree.write(path, `---\n${frontmatter.join("\n")}\n---\n${body}`);
-  for (const old of olds) tree.write(old.path, removeField(setField(tree.read(old.path)!, "status", SUPERSEDED), "anchors"));
+  createNote(tree, path, fields, body);
+  for (const old of olds) updateNote(tree, old.path, { status: SUPERSEDED, anchors: null });
 
   if (opts.json) {
     const links = Object.fromEntries([...linked].map(([field, notes]) => [field, notes.map((n) => n.path)]));

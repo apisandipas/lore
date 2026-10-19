@@ -1,4 +1,4 @@
-import { setField, yamlString } from "../frontmatter";
+import { link, render, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";
 import type { FieldDef } from "../schema";
@@ -15,7 +15,6 @@ const COMMON: Record<string, FieldDef> = {
   aliases: { many: true },
   anchors: { many: true },
 };
-const BARE = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 
 type Change = { field: string; add: boolean; values: string[] };
 
@@ -42,7 +41,8 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
   const fail = (message: string): Result => ({ code: 1, out: `lore set: ${note.path}: ${message}\n` });
 
   // Every assignment is checked before anything is written.
-  const yaml: [string, string, string[]][] = [];
+  const updates: Fields = {};
+  const set: Record<string, string | string[]> = {};
   for (const { field, add, values } of changes.values()) {
     // Superseding also rewrites the old note, so it keeps its own command.
     if (field === SUPERSEDES || (field === "status" && values.includes(SUPERSEDED))) {
@@ -59,7 +59,7 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
       if (def.link) {
         const target = linkTarget(g, field, def.link, value);
         if (!target.note) return fail(target.error!);
-        written.push(`[[${target.note.stem}]]`);
+        written.push(link(target.note.stem));
       } else written.push(value);
     }
 
@@ -72,20 +72,14 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
       list = [...existing, ...written.filter((w) => !existing.some((e) => same(e, w)))];
     }
     list = list.filter((v, i) => list.indexOf(v) === i);
-    const render = (v: string) => (!def.link && BARE.test(v) ? v : yamlString(v));
-    yaml.push([field, def.many ? `[${list.map(render).join(", ")}]` : render(list[0]!), list]);
+    set[field] = updates[field] = def.many ? list : list[0]!;
   }
 
-  const { tree } = g.repo;
-  let text = tree.read(note.path)!;
-  for (const [field, value] of yaml) text = setField(text, field, value);
-  tree.write(note.path, text);
+  updateNote(g.repo.tree, note.path, updates);
 
-  if (opts.json) {
-    const set = Object.fromEntries(yaml.map(([field, , list]) => [field, fields[field]!.many ? list : list[0]]));
-    return { code: 0, out: `${JSON.stringify({ path: note.path, set }, null, 2)}\n` };
-  }
-  return { code: 0, out: `updated ${note.path}\n${yaml.map(([field, value]) => `  ${field}: ${value}`).join("\n")}\n` };
+  if (opts.json) return { code: 0, out: `${JSON.stringify({ path: note.path, set }, null, 2)}\n` };
+  const lines = Object.entries(set).map(([field, value]) => `  ${field}: ${render(value)}`);
+  return { code: 0, out: `updated ${note.path}\n${lines.join("\n")}\n` };
 }
 
 function toList(v: unknown): string[] {
