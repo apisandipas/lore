@@ -3,7 +3,7 @@ type: Effort
 status: active
 specs: ["[[lore-cli]]"]
 frozen:
-  docs/specs/lore-cli.md: 35f19b850af7
+  docs/specs/lore-cli.md: 8bc64c3fdddb
 ---
 # Link fields on lore new
 
@@ -19,4 +19,4 @@ frozen:
 - [x] Document `--link` in `help.txt` and the README commands table, and include `--link` in the `--json` output of `new` as `links`.
 - [x] Change `skills/lore-plan/SKILL.md` step 3 to create the effort with `lore new Effort "<title>" --link specs=<spec>` in place of editing frontmatter by hand.
 - [x] Say "an" before a type name that starts with a vowel ("an Effort") in the messages of `check` and `new`, with a test.
-- [ ] Remove "Proposed; not built yet." from the spec, then `lore freeze link-fields-on-lore-new` again, since that edit changes the frozen spec.
+- [x] Remove "Proposed; not built yet." from the spec, then `lore freeze link-fields-on-lore-new` again, since that edit changes the frozen spec.
