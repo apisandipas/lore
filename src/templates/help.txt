@@ -21,6 +21,11 @@ Commands:
                         --link <field>=<note>
                                             link that note in the field, for
                                             example specs=auth (repeatable)
+  set <note> <field>=<value>...
+                      Change frontmatter fields, checked against the schema;
+                      field+=value adds to a list field
+  tick <note>         Tick the note's first open checklist item and name the
+                      next one
   freeze <note>       Record the current version of every spec the note links
                       to; check then reports when one changes
   next                What to do next, read from spec and effort state, and
