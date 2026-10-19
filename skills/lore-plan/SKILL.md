@@ -13,7 +13,7 @@ Read `.lore/WORKFLOW.md` first if it exists; the project's process wins over thi
 
 1. **Read the spec.** `lore show <spec>` gives its body, links, and any efforts already planned against it. It should be `accepted`; if it is `draft`, go back to `lore-spec`.
 2. **Read the code it touches.** Find the files the work will change and run `lore context <file>...` on them. Decisions and `CONTEXT.md` rules found there constrain the plan.
-3. **Create the effort.** `lore new Effort "<title>"` writes `docs/efforts/<slug>.md` with status `planned`. Edit its frontmatter to link the spec: `specs: ["[[<spec-stem>]]"]`.
+3. **Create the effort.** `lore new Effort "<title>" --link specs=<spec>` writes `docs/efforts/<slug>.md` with status `planned`, linked to the spec. Repeat `--link specs=<spec>` for each spec the effort covers.
 4. **Write the approach.** Under `## Approach`, a short paragraph on how the work will go and why that way. If it involves a choice a later reader would question, record it with `lore-decide` and link it.
 5. **Write the tasks.** Under `## Tasks`, a checklist (`- [ ] ...`):
    - Each task is small enough to finish and verify in one sitting, and ends in a state where the tests pass.
