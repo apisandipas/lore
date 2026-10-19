@@ -10,7 +10,7 @@ import { runContext } from "./commands/context";
 import { runFreeze } from "./commands/freeze";
 import { runInit } from "./commands/init";
 import { runList } from "./commands/list";
-import { runNew } from "./commands/new";
+import { runNew, type Link } from "./commands/new";
 import { runNext } from "./commands/next";
 import { runShow } from "./commands/show";
 import type { Result } from "./commands/shared";
@@ -53,6 +53,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
         type: { type: "string" },
         summaries: { type: "boolean", default: false },
         supersedes: { type: "string", multiple: true, default: [] },
+        link: { type: "string", multiple: true, default: [] },
       },
     });
   } catch (e) {
@@ -61,6 +62,12 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
   const { values, positionals } = parsed;
   const budget = values.budget === undefined ? DEFAULT_BUDGET : Number(values.budget);
   if (!Number.isInteger(budget) || budget <= 0) return { code: 2, out: `lore ${command}: --budget takes a positive number\n` };
+  const links: Link[] = [];
+  for (const value of values.link) {
+    const m = /^([^=\s]+)=(.+)$/.exec(value);
+    if (!m) return { code: 2, out: `lore ${command}: --link takes <field>=<note>, not '${value}'\n` };
+    links.push({ field: m[1]!, note: m[2]!.trim() });
+  }
 
   // init writes the .lore/ that loading a graph would read.
   if (command === "init") return runInit(cwd, { json: values.json });
@@ -75,7 +82,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     case "check":
       return runCheck(g, { json: values.json });
     case "new":
-      return runNew(g, positionals, { supersedes: values.supersedes, json: values.json });
+      return runNew(g, positionals, { supersedes: values.supersedes, links, json: values.json });
     case "freeze":
       return runFreeze(g, positionals, { json: values.json });
     case "next":

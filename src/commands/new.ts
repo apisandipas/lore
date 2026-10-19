@@ -6,7 +6,10 @@ import type { Note } from "../parse";
 import { idPattern } from "../schema";
 import { findNote, type Result } from "./shared";
 
-const USAGE = "usage: lore new <type> <title> [--supersedes <note>]...";
+const USAGE = "usage: lore new <type> <title> [--supersedes <note>]... [--link <field>=<note>]...";
+
+// A `--link <field>=<note>` from the command line.
+export type Link = { field: string; note: string };
 
 export function slugify(title: string): string {
   return title
@@ -18,7 +21,7 @@ export function slugify(title: string): string {
     .replace(/-+$/, "");
 }
 
-export async function runNew(g: Graph, args: string[], opts: { supersedes: string[]; json: boolean }): Promise<Result> {
+export async function runNew(g: Graph, args: string[], opts: { supersedes: string[]; links: Link[]; json: boolean }): Promise<Result> {
   const [typeName, ...words] = args;
   const title = words.join(" ").trim();
   if (!typeName || !title) return { code: 2, out: `lore new: ${USAGE}\n` };

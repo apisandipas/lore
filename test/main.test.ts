@@ -20,6 +20,14 @@ describe("cli", () => {
     expect(out).toContain("unknown command 'nope'");
   });
 
+  test("--link without field=note is a usage error", async () => {
+    for (const bad of ["specs", "=auth", "specs="]) {
+      const { code, out } = await lore("new", "Spec", "X", "--link", bad);
+      expect(code).toBe(2);
+      expect(out).toBe(`lore new: --link takes <field>=<note>, not '${bad}'\n`);
+    }
+  });
+
   test("bad --budget is a usage error", async () => {
     expect((await lore("context", "pkg/auth/session.ts", "--budget", "lots")).code).toBe(2);
   });
