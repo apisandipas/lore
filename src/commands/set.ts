@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { setField, yamlString } from "../frontmatter";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";
@@ -77,10 +76,10 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
     yaml.push([field, def.many ? `[${list.map(render).join(", ")}]` : render(list[0]!), list]);
   }
 
-  const file = Bun.file(join(g.repo.root, note.path));
-  let text = await file.text();
+  const { tree } = g.repo;
+  let text = tree.read(note.path)!;
   for (const [field, value] of yaml) text = setField(text, field, value);
-  await Bun.write(file, text);
+  tree.write(note.path, text);
 
   if (opts.json) {
     const set = Object.fromEntries(yaml.map(([field, , list]) => [field, fields[field]!.many ? list : list[0]]));

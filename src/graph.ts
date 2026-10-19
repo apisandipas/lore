@@ -1,8 +1,8 @@
-import { basename, join } from "node:path";
-import { readFileSync } from "node:fs";
-import { openRepo, rg, type Repo } from "./repo";
+import { basename } from "node:path";
+import { openRepo, type Repo } from "./repo";
 import { parseNote, sectionSummary, type Link, type Note } from "./parse";
 import { typeForPath } from "./schema";
+import type { Tree } from "./tree";
 
 export type Citation = { file: string; line: number; target: string };
 export type Resolution = { note?: Note; candidates: Note[] };
@@ -35,11 +35,10 @@ export const RETIRED = "retired";
 
 // Code cites notes as lore:<name> rather than double brackets; see lore:0004.
 const CITATION = String.raw`\blore:[A-Za-z0-9_./-]*[A-Za-z0-9_]`;
-const CITATION_LINE = /^(.+?):(\d+):lore:(.+)$/;
 const GLOB_CHAR = /[*?[{]/;
 
-export async function loadGraph(cwd: string): Promise<Graph> {
-  const repo = await openRepo(cwd);
+export function loadGraph(tree: Tree): Graph {
+  const repo = openRepo(tree);
   const notesDir = repo.config.notes;
   const fileSet = new Set(repo.files);
 
@@ -50,7 +49,7 @@ export async function loadGraph(cwd: string): Promise<Graph> {
   const notes = repo.files
     .filter(isNoteFile)
     .map((f) => {
-      const note = parseNote(f, readFileSync(join(repo.root, f), "utf8"));
+      const note = parseNote(f, tree.read(f) ?? "");
       // A note in a type's directory has that type unless it names another.
       note.type ??= typeForPath(schema, f)?.name;
       const section = schema.find(note.type)?.summary;
@@ -76,11 +75,9 @@ export async function loadGraph(cwd: string): Promise<Graph> {
     return { note: candidates.length === 1 ? candidates[0] : undefined, candidates };
   };
 
-  const citations = rg(repo.root, ["-n", "-o", "--no-heading", "--with-filename", "--hidden", "--glob", "!.git/", "-e", CITATION])
-    .flatMap((l) => {
-      const m = CITATION_LINE.exec(l);
-      return m ? [{ file: m[1]!, line: Number(m[2]), target: m[3]! }] : [];
-    })
+  const citations = tree
+    .search(CITATION)
+    .map((h) => ({ file: h.file, line: h.line, target: h.text.slice("lore:".length) }))
     .filter((c) => fileSet.has(c.file) && !isNoteFile(c.file));
 
   const anchorCache = new Map<string, string[]>();
@@ -91,7 +88,7 @@ export async function loadGraph(cwd: string): Promise<Graph> {
     if (anchor.startsWith("symbol:")) {
       const name = anchor.slice("symbol:".length).trim();
       found = name
-        ? rg(repo.root, ["-l", "-w", "-F", "--hidden", "--glob", "!.git/", "-e", name])
+        ? [...new Set(tree.search(name, { fixed: true, word: true }).map((h) => h.file))]
             .filter((f) => fileSet.has(f) && !isNoteFile(f))
             .sort()
         : [];

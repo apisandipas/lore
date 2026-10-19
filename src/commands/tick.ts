@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Graph } from "../graph";
 import { parseNote } from "../parse";
 import { findNote, type Result } from "./shared";
@@ -13,11 +12,11 @@ export async function runTick(g: Graph, args: string[], opts: { json: boolean })
   if (ticked === undefined || nextLine === undefined) {
     return { code: 1, out: `lore tick: ${note.path}: ${total ? `all ${total} items are already done` : "no checklist"}\n` };
   }
-  const file = Bun.file(join(g.repo.root, note.path));
-  const lines = (await file.text()).split("\n");
+  const { tree } = g.repo;
+  const lines = tree.read(note.path)!.split("\n");
   lines[nextLine - 1] = lines[nextLine - 1]!.replace("[ ]", "[x]");
   const text = lines.join("\n");
-  await Bun.write(file, text);
+  tree.write(note.path, text);
 
   const after = parseNote(note.path, text).checklist;
   if (opts.json) return { code: 0, out: `${JSON.stringify({ path: note.path, ticked, next: after.next ?? null }, null, 2)}\n` };

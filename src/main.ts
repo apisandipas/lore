@@ -2,9 +2,7 @@
 // Bundled files are imported, never read by path, so they resolve from a
 // read-only Nix store path and inside a `bun build --compile` binary alike.
 import { parseArgs } from "node:util";
-import help from "./templates/help.txt" with { type: "text" };
 import pkg from "../package.json" with { type: "json" };
-import { loadGraph } from "./graph";
 import { runCheck } from "./commands/check";
 import { runContext } from "./commands/context";
 import { runFreeze } from "./commands/freeze";
@@ -13,13 +11,21 @@ import { runList } from "./commands/list";
 import { runNew, type Link } from "./commands/new";
 import { runNext } from "./commands/next";
 import { runSet } from "./commands/set";
+import type { Result } from "./commands/shared";
 import { runShow } from "./commands/show";
 import { runTick } from "./commands/tick";
-import type { Result } from "./commands/shared";
+import { loadGraph } from "./graph";
+import { diskTree, type Tree } from "./tree";
+import help from "./templates/help.txt" with { type: "text" };
 
 const DEFAULT_BUDGET = 4000;
 
-export async function run(argv: string[], cwd = process.cwd()): Promise<Result> {
+// `at` is a directory on disk, or a tree to run against (tests use memory).
+export async function run(
+  argv: string[],
+  at: string | Tree = process.cwd(),
+): Promise<Result> {
+  const cwd = typeof at === "string" ? at : at.root;
   const [command, ...rest] = argv;
   switch (command) {
     case undefined:
@@ -64,29 +70,50 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     return { code: 2, out: `lore ${command}: ${(e as Error).message}\n` };
   }
   const { values, positionals } = parsed;
-  const budget = values.budget === undefined ? DEFAULT_BUDGET : Number(values.budget);
-  if (!Number.isInteger(budget) || budget <= 0) return { code: 2, out: `lore ${command}: --budget takes a positive number\n` };
+  const budget =
+    values.budget === undefined ? DEFAULT_BUDGET : Number(values.budget);
+  if (!Number.isInteger(budget) || budget <= 0)
+    return {
+      code: 2,
+      out: `lore ${command}: --budget takes a positive number\n`,
+    };
   const links: Link[] = [];
   for (const value of values.link) {
     const m = /^([^=\s]+)=(.+)$/.exec(value);
-    if (!m) return { code: 2, out: `lore ${command}: --link takes <field>=<note>, not '${value}'\n` };
+    if (!m)
+      return {
+        code: 2,
+        out: `lore ${command}: --link takes <field>=<note>, not '${value}'\n`,
+      };
     links.push({ field: m[1]!, note: m[2]!.trim() });
   }
 
   // init writes the .lore/ that loading a graph would read.
   if (command === "init") return runInit(cwd, { json: values.json });
-  const g = await loadGraph(cwd);
+  const g = loadGraph(typeof at === "string" ? diskTree(at) : at);
   switch (command) {
     case "context":
-      return runContext(g, cwd, positionals, { full: values.full, json: values.json, budget });
+      return runContext(g, cwd, positionals, {
+        full: values.full,
+        json: values.json,
+        budget,
+      });
     case "show":
       return runShow(g, positionals, { json: values.json });
     case "list":
-      return runList(g, { type: values.type, summaries: values.summaries, json: values.json });
+      return runList(g, {
+        type: values.type,
+        summaries: values.summaries,
+        json: values.json,
+      });
     case "check":
       return runCheck(g, { json: values.json });
     case "new":
-      return runNew(g, positionals, { supersedes: values.supersedes, links, json: values.json });
+      return runNew(g, positionals, {
+        supersedes: values.supersedes,
+        links,
+        json: values.json,
+      });
     case "freeze":
       return runFreeze(g, positionals, { json: values.json });
     case "next":

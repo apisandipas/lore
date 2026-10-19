@@ -1,5 +1,3 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { removeField, setField, yamlString } from "../frontmatter";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
@@ -74,8 +72,8 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     stem = `${id.format(next)}-${stem}`;
   }
   const path = `${def.dir}/${stem}.md`;
-  const abs = join(g.repo.root, path);
-  if (existsSync(abs)) return { code: 1, out: `lore new: ${path} already exists\n` };
+  const { tree } = g.repo;
+  if (tree.exists(path)) return { code: 1, out: `lore new: ${path} already exists\n` };
 
   const frontmatter = [`type: ${def.name}`];
   const status = def.fields.status?.enum?.[0];
@@ -89,15 +87,11 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
   if (anchors.length) frontmatter.push(`anchors: [${anchors.map(yamlString).join(", ")}]`);
 
-  const template = Bun.file(join(g.repo.root, ".lore", "templates", `${def.name}.md`));
-  const body = (await template.exists()) ? (await template.text()).replaceAll("{{title}}", title) : `# ${title}\n`;
+  const template = tree.read(`.lore/templates/${def.name}.md`);
+  const body = template?.replaceAll("{{title}}", title) ?? `# ${title}\n`;
 
-  mkdirSync(dirname(abs), { recursive: true });
-  await Bun.write(abs, `---\n${frontmatter.join("\n")}\n---\n${body}`);
-  for (const old of olds) {
-    const file = Bun.file(join(g.repo.root, old.path));
-    await Bun.write(file, removeField(setField(await file.text(), "status", SUPERSEDED), "anchors"));
-  }
+  tree.write(path, `---\n${frontmatter.join("\n")}\n---\n${body}`);
+  for (const old of olds) tree.write(old.path, removeField(setField(tree.read(old.path)!, "status", SUPERSEDED), "anchors"));
 
   if (opts.json) {
     const links = Object.fromEntries([...linked].map(([field, notes]) => [field, notes.map((n) => n.path)]));

@@ -6,7 +6,7 @@ import workflow from "../templates/init/WORKFLOW.md" with { type: "text" };
 import spec from "../templates/init/Spec.md" with { type: "text" };
 import decision from "../templates/init/Decision.md" with { type: "text" };
 import effort from "../templates/init/Effort.md" with { type: "text" };
-import { findRoot } from "../repo";
+import { findRoot } from "../tree";
 import type { Result } from "./shared";
 
 const FILES: [string, string][] = [

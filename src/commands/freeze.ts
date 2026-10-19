@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { setField } from "../frontmatter";
 import { SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
@@ -36,8 +35,8 @@ export async function runFreeze(g: Graph, args: string[], opts: { json: boolean 
   }
 
   const frozen = targets.map((t) => ({ path: t.path, hash: specHash(t) }));
-  const file = Bun.file(join(g.repo.root, note.path));
-  await Bun.write(file, setField(await file.text(), "frozen", `\n${frozen.map((f) => `  ${f.path}: ${f.hash}`).join("\n")}`));
+  const { tree } = g.repo;
+  tree.write(note.path, setField(tree.read(note.path)!, "frozen", `\n${frozen.map((f) => `  ${f.path}: ${f.hash}`).join("\n")}`));
 
   if (opts.json) return { code: 0, out: `${JSON.stringify({ path: note.path, frozen }, null, 2)}\n` };
   return { code: 0, out: `froze ${note.path} against:\n${frozen.map((f) => `  ${f.path} ${f.hash}`).join("\n")}\n` };
