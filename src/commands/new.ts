@@ -102,7 +102,10 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     await Bun.write(file, removeField(setField(await file.text(), "status", SUPERSEDED), "anchors"));
   }
 
-  if (opts.json) return { code: 0, out: `${JSON.stringify({ path, superseded: olds.map((o) => o.path) }, null, 2)}\n` };
+  if (opts.json) {
+    const links = Object.fromEntries([...linked].map(([field, notes]) => [field, notes.map((n) => n.path)]));
+    return { code: 0, out: `${JSON.stringify({ path, superseded: olds.map((o) => o.path), links }, null, 2)}\n` };
+  }
   const lines = [
     `created ${path}`,
     ...olds.map((o) => `marked ${o.path} superseded${o.anchors.length ? " and moved its anchors" : ""}`),

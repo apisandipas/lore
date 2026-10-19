@@ -145,6 +145,9 @@ describe("new --link writes", () => {
       '---\ntype: Effort\nstatus: planned\nspecs: ["[[auth]]"]\nparent: "[[reset]]"\n---\n# Sliding sessions\n',
     );
     expect((await c.lore("check")).out).not.toContain("sliding-sessions");
+
+    const json = JSON.parse((await c.lore("new", "Effort", "Again", "--link", "specs=auth", "--json")).out);
+    expect(json).toEqual({ path: "docs/efforts/again.md", superseded: [], links: { specs: ["docs/specs/auth.md"] } });
   });
 });
 

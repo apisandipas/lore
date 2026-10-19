@@ -74,7 +74,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 | `lore show <note>` | A note with its supersede history, links out, links in, citing code, anchors and checklist progress. |
 | `lore list` | Every note, one line each. `--type <type>` filters; `--summaries` adds each summary, which lets an agent find notes by meaning without embeddings. |
 | `lore check` | Broken or ambiguous links and citations, anchors that match nothing, schema violations, superseding mistakes, and frozen specs that changed. Exits 1 when it finds problems. |
-| `lore new <type> <title>` | Creates a note in the type's directory, numbered if the type has an `id`, from `.lore/templates/<Type>.md` if present. `--supersedes <note>` (repeatable) marks the old note superseded and moves its anchors to the new one. |
+| `lore new <type> <title>` | Creates a note in the type's directory, numbered if the type has an `id`, from `.lore/templates/<Type>.md` if present. `--supersedes <note>` (repeatable) marks the old note superseded and moves its anchors to the new one. `--link <field>=<note>` (repeatable) fills a link field, for example `lore new Effort "Password reset" --link specs=auth`. |
 | `lore freeze <note>` | Records the current version of every spec the note links to. |
 | `lore next` | What to do next and which `lore-*` skill does it, read from spec and effort state: a spec that changed under an effort, an effort ready to ship, the next open item, an accepted spec with no effort, a draft spec. |
 
