@@ -63,7 +63,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 
 **Superseding.** Decisions are never edited or deleted. A new decision lists the old one in `supersedes`, and the old one becomes `superseded`. `lore context` always shows the decision in force, with one line of history; `lore show` walks the whole chain.
 
-**Efforts and freezing.** An effort links the specs it was planned against and tracks its tasks as a Markdown checklist. `lore freeze` records a hash of each spec's body, and `lore check` reports when one changes, because the plan may now be stale.
+**Efforts and freezing.** An effort links the specs it was planned against and tracks its tasks as a Markdown checklist. `lore freeze` records a hash of each spec's body, and `lore check` reports when one changes, because the plan may now be stale. Once an effort is `done` its frozen versions are history: `check` stops reporting them, and a spec that changes after all its efforts shipped shows up in `lore next` as something to plan.
 
 ## Commands
 
@@ -73,10 +73,10 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 | `lore context <file>...` | Notes that govern the files, ranked: code citations, symbol anchors, path anchors (most specific first), `CONTEXT.md` files, then notes one frontmatter link away. `--full` adds bodies, `--budget <tokens>` caps output (default 4000). |
 | `lore show <note>` | A note with its supersede history, links out, links in, citing code, anchors and checklist progress. |
 | `lore list` | Every note, one line each. `--type <type>` filters; `--summaries` adds each summary, which lets an agent find notes by meaning without embeddings. |
-| `lore check` | Broken or ambiguous links and citations, anchors that match nothing, schema violations, superseding mistakes, and frozen specs that changed. Exits 1 when it finds problems. |
+| `lore check` | Broken or ambiguous links and citations, anchors that match nothing, schema violations, superseding mistakes, and frozen specs that changed under an effort that is not `done`. Exits 1 when it finds problems. |
 | `lore new <type> <title>` | Creates a note in the type's directory, numbered if the type has an `id`, from `.lore/templates/<Type>.md` if present. `--supersedes <note>` (repeatable) marks the old note superseded and moves its anchors to the new one. `--link <field>=<note>` (repeatable) fills a link field, for example `lore new Effort "Password reset" --link specs=auth`. |
 | `lore freeze <note>` | Records the current version of every spec the note links to. |
-| `lore next` | What to do next and which `lore-*` skill does it, read from spec and effort state: a spec that changed under an effort, an effort ready to ship, the next open item, an accepted spec with no effort, a draft spec. |
+| `lore next` | What to do next and which `lore-*` skill does it, read from spec and effort state: a spec that changed under an effort, an effort ready to ship, the next open item, an accepted spec with no effort or changed since its efforts shipped, a draft spec. |
 
 Every command except `help` and `version` takes `--json`.
 

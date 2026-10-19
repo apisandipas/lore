@@ -94,6 +94,7 @@ function checkSuperseding(g: Graph, note: Note, at: At) {
 
 function checkFrozen(g: Graph, note: Note, at: At) {
   // A done effort's frozen versions are history; lore next reports the change.
+  // Freezing itself: see lore:0007-efforts-freeze-spec-versions.
   if (note.status === DONE) return;
   for (const [path, hash] of frozenEntries(note)) {
     const spec = g.byPath.get(path);
