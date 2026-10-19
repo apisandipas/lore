@@ -35,7 +35,7 @@ lore is a Nix flake. It needs [Bun](https://bun.sh) and [ripgrep](https://github
 nix run github:apisandipas/lore -- help
 ```
 
-Or add it as a flake input and install `lore.packages.${system}.default`. While the repo is private, Nix needs a GitHub token to fetch it, for example `--option access-tokens "github.com=$(gh auth token)"`.
+Or add it as a flake input and install `lore.packages.${system}.default`.
 
 For development, `nix develop` gives you `bun` and `rg`; `bun src/main.ts <command>` runs from source.
 
