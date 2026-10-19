@@ -13,6 +13,7 @@ import { runList } from "./commands/list";
 import { runNew, type Link } from "./commands/new";
 import { runNext } from "./commands/next";
 import { runShow } from "./commands/show";
+import { runTick } from "./commands/tick";
 import type { Result } from "./commands/shared";
 
 const DEFAULT_BUDGET = 4000;
@@ -36,6 +37,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     case "freeze":
     case "next":
     case "init":
+    case "tick":
       break;
     default:
       return { code: 2, out: `lore: unknown command '${command}'\n\n${help}` };
@@ -87,6 +89,8 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
       return runFreeze(g, positionals, { json: values.json });
     case "next":
       return runNext(g, { json: values.json });
+    case "tick":
+      return runTick(g, positionals, { json: values.json });
   }
 }
 

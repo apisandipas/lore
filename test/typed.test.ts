@@ -152,6 +152,34 @@ describe("new --link writes", () => {
   });
 });
 
+describe("tick", () => {
+  test("ticks the first open item and names the next, until none are left", async () => {
+    const c = copy();
+    expect((await c.lore("tick", "reset")).out).toBe(
+      "ticked docs/efforts/reset.md: Email the link\nnext: Expire links after an hour  (2 of 3 done)\n",
+    );
+    expect(JSON.parse((await c.lore("tick", "reset", "--json")).out)).toEqual({
+      path: "docs/efforts/reset.md",
+      ticked: "Expire links after an hour",
+      next: null,
+    });
+    expect(c.read("docs/efforts/reset.md")).toEndWith(
+      "- [x] Write the reset endpoint\n- [x] Email the link\n- [x] Expire links after an hour\n",
+    );
+
+    const before = c.read("docs/efforts/reset.md");
+    const done = await c.lore("tick", "reset");
+    expect(done).toEqual({ code: 1, out: "lore tick: docs/efforts/reset.md: all 3 items are already done\n" });
+    expect(c.read("docs/efforts/reset.md")).toBe(before);
+  });
+
+  test("refuses a note with no checklist, and needs exactly one note", async () => {
+    expect(await lore("tick", "auth")).toEqual({ code: 1, out: "lore tick: docs/specs/auth.md: no checklist\n" });
+    expect((await lore("tick")).code).toBe(2);
+    expect((await lore("tick", "reset", "auth")).code).toBe(2);
+  });
+});
+
 describe("freeze", () => {
   test("records spec hashes; check reports drift when the spec body changes", async () => {
     const c = copy();
