@@ -75,6 +75,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 | `lore check` | Broken or ambiguous links and citations, anchors that match nothing, schema violations, superseding mistakes, and frozen specs that changed. Exits 1 when it finds problems. |
 | `lore new <type> <title>` | Creates a note in the type's directory, numbered if the type has an `id`, from `.lore/templates/<Type>.md` if present. `--supersedes <note>` (repeatable) marks the old note superseded and moves its anchors to the new one. |
 | `lore freeze <note>` | Records the current version of every spec the note links to. |
+| `lore next` | What to do next and which `lore-*` skill does it, read from spec and effort state: a spec that changed under an effort, an effort ready to ship, the next open item, an accepted spec with no effort, a draft spec. |
 
 Every command except `help` and `version` takes `--json`.
 
@@ -109,7 +110,7 @@ A field can be `required`, limited to an `enum`, or a `link` to another type, op
 
 ## Status
 
-Working now: everything above. Next: `lore next` (what to do next, read from note state), `lore init` (schema, templates and a `WORKFLOW.md`), and a set of agent skills for the flow `lore-spec` → `lore-plan` → `lore-build` → `lore-ship`, with `lore-decide` at any step.
+Working now: everything above. Next: `lore init` (schema, templates and a `WORKFLOW.md`), and a set of agent skills for the flow `lore-spec` → `lore-plan` → `lore-build` → `lore-ship`, with `lore-decide` at any step. The skills will live in `skills/` and install with `npx skills add apisandipas/lore`.
 
 lore's design decisions are recorded as lore notes in [`docs/decisions`](docs/decisions); `lore list --summaries` in this repo is a quick tour.
 

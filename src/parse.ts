@@ -15,14 +15,15 @@ export type Note = {
   aliases: string[];
   anchors: string[];
   links: Link[];
-  checklist: { done: number; total: number };
+  // `next` is the text of the first unchecked item.
+  checklist: { done: number; total: number; next?: string };
   body: string;
 };
 
 // [[target]], [[target#heading]], [[target|label]]
 const LINK = /\[\[([^\[\]|#\n]+)(?:#[^\[\]|\n]*)?(?:\|[^\[\]\n]*)?\]\]/g;
 const FENCE = /^\s*(```|~~~)/;
-const CHECKBOX = /^\s*[-*+] \[([ xX])\]/;
+const CHECKBOX = /^\s*[-*+] \[([ xX])\]\s*(.*)$/;
 const SUMMARY_MAX = 280;
 
 export function linkTargets(text: string): string[] {
@@ -64,7 +65,7 @@ export function parseNote(path: string, text: string): Note {
   }
 
   const bodyLines = lines.slice(bodyStart);
-  const checklist = { done: 0, total: 0 };
+  const checklist: Note["checklist"] = { done: 0, total: 0 };
   let fenced = false;
   bodyLines.forEach((l, i) => {
     if (FENCE.test(l)) {
@@ -76,6 +77,7 @@ export function parseNote(path: string, text: string): Note {
     if (box) {
       checklist.total++;
       if (box[1] !== " ") checklist.done++;
+      else checklist.next ??= box[2]!.trim();
     }
     for (const target of linkTargets(l.replace(/`[^`]*`/g, ""))) links.push({ target, line: bodyStart + i + 1 });
   });

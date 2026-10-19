@@ -10,6 +10,7 @@ import { runContext } from "./commands/context";
 import { runFreeze } from "./commands/freeze";
 import { runList } from "./commands/list";
 import { runNew } from "./commands/new";
+import { runNext } from "./commands/next";
 import { runShow } from "./commands/show";
 import type { Result } from "./commands/shared";
 
@@ -32,6 +33,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     case "check":
     case "new":
     case "freeze":
+    case "next":
       break;
     default:
       return { code: 2, out: `lore: unknown command '${command}'\n\n${help}` };
@@ -72,6 +74,8 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
       return runNew(g, positionals, { supersedes: values.supersedes, json: values.json });
     case "freeze":
       return runFreeze(g, positionals, { json: values.json });
+    case "next":
+      return runNext(g, { json: values.json });
   }
 }
 

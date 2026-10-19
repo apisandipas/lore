@@ -18,6 +18,8 @@ Commands:
                                             move its anchors (repeatable)
   freeze <note>       Record the current version of every spec the note links
                       to; check then reports when one changes
+  next                What to do next, read from spec and effort state, and
+                      the lore-* skill that does it
   help                Show this help
   version             Print the version
 

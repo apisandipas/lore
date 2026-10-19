@@ -21,6 +21,7 @@ lore indexes typed Markdown notes and the links between notes and code, and answ
 - `lore check`: unreadable frontmatter, unresolved or ambiguous links and citations, anchors matching nothing, schema violations, superseding mistakes, and frozen specs that changed. Exit 1 when it finds problems.
 - `lore new <type> <title> [--supersedes <note>]...`: create a note in the type's directory, numbered when the type has an `id`, from `.lore/templates/<Type>.md` when present. Superseding flips the old note's status and moves its anchors to the new note.
 - `lore freeze <note>`: record a hash of the body of each note in the type's `freeze` fields (every link field but `supersedes` by default). `check` reports when one changes.
+- `lore next`: the next step and the `lore-*` skill that takes it, then the rest in order ([[0008-workflow-skills-and-lore-next]]). Efforts are the types that set `freeze`; specs are the types those fields link to. Ranked: an effort whose frozen spec changed (`lore-plan`), an effort with every item checked (`lore-ship`), an effort with open items (`lore-build`, naming the first), an effort with no checklist or no freeze (`lore-plan`), a spec no effort links (`lore-plan`), a `draft` spec (`lore-spec`). `active` efforts come before others of the same rank; `done` efforts and `retired` or `superseded` specs are skipped.
 
 ## Configuration
 `.lore/schema.yml` at the repo root holds `notes` (the notes directory), `ignore` (globs excluded everywhere), and `types`. Without `.lore/`, the git root is the repo root.
@@ -31,4 +32,4 @@ Each type may set `dir` (notes there get the type without naming it), `id` (a `{
 A note whose `supersedes` field links to another replaces it ([[0006-decisions-are-superseded-never-edited]]). `context` shows the note in force with one line of history; `show` walks the whole chain. `check` requires the old note to be `superseded`, a superseded note to have a successor and no anchors, and code to cite the note in force.
 
 ## Later phases
-Phase 3: `lore next`, `lore init`, the `lore-*` skills ([[0008-workflow-skills-and-lore-next]]).
+Phase 3: `lore init`, and the `lore-*` skills under `skills/` ([[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]).

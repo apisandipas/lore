@@ -138,3 +138,52 @@ describe("setField", () => {
     expect(setField("body", "a", "1")).toBe("---\na: 1\n---\nbody");
   });
 });
+
+describe("next", () => {
+  const steps = async (c: ReturnType<typeof copy>) =>
+    JSON.parse((await c.lore("next", "--json")).out).steps.map((s: { skill: string; path: string }) => `${s.skill} ${s.path}`);
+
+  test("walks an effort from plan to build to ship, and drift sends it back to plan", async () => {
+    const c = copy();
+    const effort = join(c.dir, "docs/efforts/reset.md");
+    expect((await c.lore("next")).out).toBe(
+      "next: lore-plan docs/efforts/reset.md\n  Password reset  (Effort, active)\n  planned but not frozen\n",
+    );
+
+    await c.lore("freeze", "reset");
+    expect((await c.lore("next")).out).toBe(
+      "next: lore-build docs/efforts/reset.md\n  Password reset  (Effort, active)\n  1 of 3 done\n  next item: Email the link\n",
+    );
+
+    writeFileSync(effort, readFileSync(effort, "utf8").replaceAll("- [ ]", "- [x]"));
+    expect(await steps(c)).toEqual(["lore-ship docs/efforts/reset.md"]);
+
+    const spec = join(c.dir, "docs/specs/auth.md");
+    writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
+    expect((await c.lore("next")).out).toContain("docs/specs/auth.md changed since it was planned");
+
+    writeFileSync(effort, setField(readFileSync(effort, "utf8"), "status", "done"));
+    expect((await c.lore("next")).out).toBe("nothing in progress; start a spec with lore-spec\n");
+  });
+
+  test("ranks efforts before unplanned specs, and those before drafts", async () => {
+    const c = copy();
+    writeFileSync(join(c.dir, "docs/specs/billing.md"), "---\nstatus: accepted\n---\n# Billing\n");
+    writeFileSync(join(c.dir, "docs/specs/search.md"), "---\nstatus: draft\n---\n# Search\n");
+    writeFileSync(join(c.dir, "docs/specs/old.md"), "---\nstatus: retired\n---\n# Old\n");
+    expect(await steps(c)).toEqual([
+      "lore-plan docs/efforts/reset.md",
+      "lore-plan docs/specs/billing.md",
+      "lore-spec docs/specs/search.md",
+    ]);
+    expect((await c.lore("next")).out).toContain(
+      "then:\n  lore-plan  docs/specs/billing.md  accepted spec with no effort\n  lore-spec  docs/specs/search.md  draft spec\n",
+    );
+  });
+
+  test("needs a type that freezes something", async () => {
+    const { code, out } = await run(["next"], join(import.meta.dir, "fixtures", "basic"));
+    expect(code).toBe(1);
+    expect(out).toContain("no type in .lore/schema.yml sets freeze");
+  });
+});
