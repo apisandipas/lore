@@ -8,6 +8,7 @@ import { loadGraph } from "./graph";
 import { runCheck } from "./commands/check";
 import { runContext } from "./commands/context";
 import { runFreeze } from "./commands/freeze";
+import { runInit } from "./commands/init";
 import { runList } from "./commands/list";
 import { runNew } from "./commands/new";
 import { runNext } from "./commands/next";
@@ -34,6 +35,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     case "new":
     case "freeze":
     case "next":
+    case "init":
       break;
     default:
       return { code: 2, out: `lore: unknown command '${command}'\n\n${help}` };
@@ -60,6 +62,8 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
   const budget = values.budget === undefined ? DEFAULT_BUDGET : Number(values.budget);
   if (!Number.isInteger(budget) || budget <= 0) return { code: 2, out: `lore ${command}: --budget takes a positive number\n` };
 
+  // init writes the .lore/ that loading a graph would read.
+  if (command === "init") return runInit(cwd, { json: values.json });
   const g = await loadGraph(cwd);
   switch (command) {
     case "context":

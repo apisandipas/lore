@@ -15,6 +15,7 @@ lore indexes typed Markdown notes and the links between notes and code, and answ
 - `anchors` claim code: a path (`pkg/auth`), a glob (`pkg/auth/**`), or `symbol:Name` (any file using that word).
 
 ## Commands
+- `lore init`: write `.lore/schema.yml`, `.lore/WORKFLOW.md` and `.lore/templates/` for Spec, Decision and Effort, never overwriting a file that exists. Then look for the `lore-*` skills in `.claude/skills` and `.agents/skills`, in the project and the home directory, and print `npx skills add apisandipas/lore` when any are missing ([[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]).
 - `lore context <file>...`: notes that govern the files, ranked: code citations, symbol anchors, path anchors (most specific first), `CONTEXT.md` files in ancestor directories, then notes one frontmatter link away. Summaries by default; `--full` adds bodies, `--budget <tokens>` caps output, `--json`.
 - `lore show <note>`: the note, its links out, notes linking in, code citing it, and what its anchors match.
 - `lore list [--type T] [--summaries]`: every note, one line each ([[0009-no-embeddings-until-summaries-overflow]]).
@@ -32,4 +33,4 @@ Each type may set `dir` (notes there get the type without naming it), `id` (a `{
 A note whose `supersedes` field links to another replaces it ([[0006-decisions-are-superseded-never-edited]]). `context` shows the note in force with one line of history; `show` walks the whole chain. `check` requires the old note to be `superseded`, a superseded note to have a successor and no anchors, and code to cite the note in force.
 
 ## Later phases
-Phase 3: `lore init`, and the `lore-*` skills under `skills/` ([[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]).
+Phase 3: the `lore-*` skills under `skills/` ([[0010-skills-ship-in-the-lore-repo-and-install-with-npx-skills]]).

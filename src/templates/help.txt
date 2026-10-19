@@ -3,6 +3,8 @@ lore: typed project notes linked to the code they govern
 Usage: lore <command> [args] [options]
 
 Commands:
+  init                Write .lore/ (schema, templates, WORKFLOW.md) and check
+                      that the lore-* skills are installed
   context <file>...   Notes that govern these files, most relevant first
                         --full            include note bodies
                         --budget <tokens> cap the output (default 4000)

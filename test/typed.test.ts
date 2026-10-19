@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "../src/main";
 import { setField } from "../src/frontmatter";
+import { runInit, SKILLS } from "../src/commands/init";
 
 const fixture = join(import.meta.dir, "fixtures", "typed");
 const lore = (...argv: string[]) => run(argv, fixture);
@@ -185,5 +186,62 @@ describe("next", () => {
     const { code, out } = await run(["next"], join(import.meta.dir, "fixtures", "basic"));
     expect(code).toBe(1);
     expect(out).toContain("no type in .lore/schema.yml sets freeze");
+  });
+});
+
+describe("init", () => {
+  const scratch = () => {
+    const dir = mkdtempSync(join(tmpdir(), "lore-test-"));
+    copies.push(dir);
+    mkdirSync(join(dir, ".git"));
+    return dir;
+  };
+
+  test("writes .lore/ without overwriting, and points at npx skills when the skills are missing", async () => {
+    const [dir, home] = [scratch(), scratch()];
+    mkdirSync(join(dir, ".lore"));
+    writeFileSync(join(dir, ".lore/schema.yml"), "notes: notes\n");
+    const { code, out } = await runInit(dir, { json: false, home });
+    expect(code).toBe(0);
+    expect(out).toBe(
+      [
+        "created .lore/WORKFLOW.md",
+        "created .lore/templates/Spec.md",
+        "created .lore/templates/Decision.md",
+        "created .lore/templates/Effort.md",
+        "kept .lore/schema.yml (already there)",
+        "",
+        "skills: not installed; install them with:",
+        "  npx skills add apisandipas/lore",
+        "",
+        "Read .lore/WORKFLOW.md, then start a spec with lore-spec.",
+        "",
+      ].join("\n"),
+    );
+    expect(readFileSync(join(dir, ".lore/schema.yml"), "utf8")).toBe("notes: notes\n");
+  });
+
+  test("finds skills in the project or the home directory", async () => {
+    const [dir, home] = [scratch(), scratch()];
+    const install = (base: string, names: string[]) => {
+      for (const n of names) {
+        mkdirSync(join(base, n), { recursive: true });
+        writeFileSync(join(base, n, "SKILL.md"), `---\nname: ${n}\n---\n`);
+      }
+    };
+    install(join(home, ".claude/skills"), SKILLS.slice(0, 3));
+    expect((await runInit(dir, { json: false, home })).out).toContain("skills: lore-ship, lore-decide, lore-next missing");
+    install(join(dir, ".agents/skills"), SKILLS.slice(3));
+    expect(JSON.parse((await runInit(dir, { json: true, home })).out).skills).toEqual({
+      found: [".agents/skills", "~/.claude/skills"],
+      missing: [],
+    });
+  });
+
+  test("the schema it writes gives next an effort to follow", async () => {
+    const dir = scratch();
+    await run(["init"], dir);
+    await run(["new", "Spec", "Login"], dir);
+    expect((await run(["next"], dir)).out).toContain("next: lore-spec docs/specs/login.md");
   });
 });

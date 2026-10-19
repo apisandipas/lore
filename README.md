@@ -69,6 +69,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 
 | Command | What it does |
 |---|---|
+| `lore init` | Writes `.lore/` with the default schema, note templates and a `WORKFLOW.md`, keeping any file already there, and tells you how to install the skills if they are missing. |
 | `lore context <file>...` | Notes that govern the files, ranked: code citations, symbol anchors, path anchors (most specific first), `CONTEXT.md` files, then notes one frontmatter link away. `--full` adds bodies, `--budget <tokens>` caps output (default 4000). |
 | `lore show <note>` | A note with its supersede history, links out, links in, citing code, anchors and checklist progress. |
 | `lore list` | Every note, one line each. `--type <type>` filters; `--summaries` adds each summary, which lets an agent find notes by meaning without embeddings. |
@@ -110,7 +111,7 @@ A field can be `required`, limited to an `enum`, or a `link` to another type, op
 
 ## Status
 
-Working now: everything above. Next: `lore init` (schema, templates and a `WORKFLOW.md`), and a set of agent skills for the flow `lore-spec` → `lore-plan` → `lore-build` → `lore-ship`, with `lore-decide` at any step. The skills will live in `skills/` and install with `npx skills add apisandipas/lore`.
+Working now: everything above. Next: a set of agent skills for the flow `lore-spec` → `lore-plan` → `lore-build` → `lore-ship`, with `lore-decide` at any step. The skills will live in `skills/` and install with `npx skills add apisandipas/lore`.
 
 lore's design decisions are recorded as lore notes in [`docs/decisions`](docs/decisions); `lore list --summaries` in this repo is a quick tour.
 
