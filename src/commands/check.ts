@@ -1,7 +1,8 @@
 import { DONE, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { frozenEntries, specHash } from "./freeze";
-import { a, type Result } from "./shared";
+import { fieldProblems } from "../validate";
+import type { Result } from "./shared";
 
 export type Problem = { file: string; line: number; message: string };
 
@@ -14,6 +15,8 @@ export function checkGraph(g: Graph): Problem[] {
     const at = (line: number, message: string) => problems.push({ file: note.path, line, message });
     if (note.frontmatterError) at(1, note.frontmatterError);
     for (const link of note.links) {
+      // Links in the type's link fields are checked with the rest of the field.
+      if (link.field && note.def?.fields[link.field]?.link) continue;
       const r = g.resolve(link.target);
       if (!r.note) at(link.line, `${link.field ? `${link.field} link` : "link"} ${target(link.target, r.candidates.length)}`);
     }
@@ -49,30 +52,8 @@ function checkSchema(g: Graph, note: Note, at: At) {
     at(fieldLine(note, "type"), `type '${note.type}' is not in .lore/schema.yml`);
     return;
   }
-  for (const [field, spec] of Object.entries(def.fields)) {
-    const value = note.frontmatter[field];
-    const line = fieldLine(note, field);
-    if (value === undefined || value === null || value === "" || (Array.isArray(value) && !value.length)) {
-      if (spec.required) at(line, `${def.name} needs '${field}'`);
-      continue;
-    }
-    if (Array.isArray(value) && !spec.many) at(line, `'${field}' takes one value, not a list`);
-    const values = Array.isArray(value) ? value : [value];
-    if (spec.enum) {
-      for (const v of values) {
-        if (!spec.enum.includes(String(v))) at(line, `'${field}' is '${v}'; expected one of ${spec.enum.join(", ")}`);
-      }
-    }
-    if (spec.link) {
-      const links = note.links.filter((l) => l.field === field);
-      if (links.length < values.length) at(line, `'${field}' should link with [[name]]`);
-      for (const l of links) {
-        const linked = g.resolve(l.target).note;
-        if (linked && !g.isA(linked, spec.link)) {
-          at(line, `'${field}' links to ${linked.stem}, ${a(linked.type ?? "untyped note")}; expected ${a(spec.link)}`);
-        }
-      }
-    }
+  for (const field of Object.keys(def.fields)) {
+    for (const message of fieldProblems(g, def, field, note.frontmatter[field])) at(fieldLine(note, field), message);
   }
 }
 

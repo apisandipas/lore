@@ -1,8 +1,9 @@
-import { link, render, updateNote, type Fields } from "../edit";
+import { render, updateNote, type Fields } from "../edit";
+import { fieldProblems } from "../validate";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";
 import type { FieldDef } from "../schema";
-import { linkTarget, type Result } from "./shared";
+import { linkTo, type Result } from "./shared";
 
 const USAGE = "usage: lore set <note> <field>=<value>... (or <field>+=<value> on a list field)";
 const ASSIGNMENT = /^([A-Za-z_][\w-]*)(\+?=)(.+)$/;
@@ -50,29 +51,26 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
     }
     const def = fields[field];
     if (!def) return fail(`'${field}' is not a field of ${note.type ?? "an untyped note"} (fields: ${Object.keys(fields).join(", ")})`);
-    if (!def.many && (values.length > 1 || add)) return fail(`${field} takes one value`);
+    if (!def.many && (values.length > 1 || add)) return fail(`'${field}' takes one value, not a list`);
 
-    const written: string[] = [];
-    for (const value of values) {
-      if (def.enum && !def.enum.includes(value)) return fail(`'${field}' cannot be '${value}'; expected one of ${def.enum.join(", ")}`);
-      if (field === "type" && schema.types.length && !schema.find(value)) return fail(`type '${value}' is not in .lore/schema.yml`);
-      if (def.link) {
-        const target = linkTarget(g, field, def.link, value);
-        if (!target.note) return fail(target.error!);
-        written.push(link(target.note.stem));
-      } else written.push(value);
-    }
+    if (field === "type" && schema.types.length && !schema.find(values[0]!)) return fail(`type '${values[0]}' is not in .lore/schema.yml`);
+    const written = def.link ? values.map((v) => linkTo(g, v)) : values;
 
     let list = written;
     if (add) {
       const existing = toList(note.frontmatter[field]);
       // A link already there under another name for the same note is not added twice.
-      const same = (a: string, b: string) =>
-        a === b || (!!def.link && g.resolve(linkTargets(a)[0] ?? a).note === g.resolve(linkTargets(b)[0] ?? b).note);
+      const target = (s: string) => g.resolve(linkTargets(s)[0] ?? s).note;
+      const same = (a: string, b: string) => a === b || (!!def.link && !!target(a) && target(a) === target(b));
       list = [...existing, ...written.filter((w) => !existing.some((e) => same(e, w)))];
     }
     list = list.filter((v, i) => list.indexOf(v) === i);
-    set[field] = updates[field] = def.many ? list : list[0]!;
+    const value = def.many ? list : list[0]!;
+    if (note.def) {
+      const [problem] = fieldProblems(g, note.def, field, value);
+      if (problem) return fail(problem);
+    }
+    set[field] = updates[field] = value;
   }
 
   updateNote(g.repo.tree, note.path, updates);

@@ -114,11 +114,11 @@ describe("new --link", () => {
     writeFileSync(schema, readFileSync(schema, "utf8").replace("      status: { enum: [planned, active, done] }", "      status: { enum: [planned, active, done] }\n      parent: { link: Effort }"));
     const cases: [string[], string][] = [
       [["Effort", "X", "--link", "status=auth"], "'status' is not a link field of Effort (link fields: specs, parent)"],
-      [["Effort", "X", "--link", "specs=nope"], "--link specs: no note matches 'nope'"],
-      [["Effort", "X", "--link", "specs=0002"], "--link specs: 0002-rotating-tokens is a Decision; specs links to a Spec"],
-      [["Effort", "X", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to an Effort"],
-      [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link parent: auth is a Spec; parent links to an Effort"],
-      [["Effort", "X", "--link", "specs=auth", "--link", "parent=reset", "--link", "parent=stray"], "--link parent: stray is a Chore; parent links to an Effort"],
+      [["Effort", "X", "--link", "specs=nope"], "--link 'specs' links to 'nope', which matches no note"],
+      [["Effort", "X", "--link", "specs=0002"], "--link 'specs' links to 0002-rotating-tokens, a Decision; expected a Spec"],
+      [["Effort", "X", "--link", "parent=auth"], "--link 'parent' links to auth, a Spec; expected an Effort"],
+      [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link 'parent' takes one value, not a list"],
+      [["Effort", "X", "--link", "specs=auth", "--link", "parent=stray"], "--link 'parent' links to stray, a Chore; expected an Effort"],
       [["Decision", "X", "--link", "supersedes=0002"], "--link cannot set supersedes; use --supersedes <note>"],
     ];
     for (const [args, message] of cases) {
@@ -128,7 +128,7 @@ describe("new --link", () => {
     }
     writeFileSync(join(c.dir, "docs/efforts/other.md"), "---\ntype: Effort\nspecs: [\"[[auth]]\"]\n---\n# Other\n");
     const twice = await c.lore("new", "Effort", "X", "--link", "parent=reset", "--link", "parent=other");
-    expect(twice.out).toBe("lore new: parent takes one note, not several\n");
+    expect(twice.out).toBe("lore new: --link 'parent' takes one value, not a list\n");
     expect(existsSync(join(c.dir, "docs/efforts/x.md"))).toBe(false);
     expect(existsSync(join(c.dir, "docs/decisions/0004-x.md"))).toBe(false);
   });
@@ -164,16 +164,16 @@ describe("set refuses", () => {
     const before = c.read("docs/efforts/reset.md");
     const cases: [string[], string][] = [
       [["reset", "stauts=done"], "'stauts' is not a field of Effort (fields: type, status, title, summary, aliases, anchors, specs)"],
-      [["reset", "status=finished"], "'status' cannot be 'finished'; expected one of planned, active, done"],
+      [["reset", "status=finished"], "'status' is 'finished'; expected one of planned, active, done"],
       [["reset", "type=Chore"], "type 'Chore' is not in .lore/schema.yml"],
-      [["reset", "specs=nope"], "specs: no note matches 'nope'"],
-      [["reset", "specs=0002"], "specs: 0002-rotating-tokens is a Decision; specs links to a Spec"],
-      [["reset", "status=active", "status=done"], "status takes one value"],
-      [["reset", "title+=More"], "title takes one value"],
+      [["reset", "specs=nope"], "'specs' links to 'nope', which matches no note"],
+      [["reset", "specs=0002"], "'specs' links to 0002-rotating-tokens, a Decision; expected a Spec"],
+      [["reset", "status=active", "status=done"], "'status' takes one value, not a list"],
+      [["reset", "title+=More"], "'title' takes one value, not a list"],
       [["0002", "supersedes=0001"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
       [["0002", "status=superseded"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
       // One bad assignment stops the good ones too.
-      [["reset", "status=done", "specs=nope"], "specs: no note matches 'nope'"],
+      [["reset", "status=done", "specs=nope"], "'specs' links to 'nope', which matches no note"],
     ];
     for (const [args, message] of cases) {
       const note = (await c.lore("show", args[0]!, "--json")).out;

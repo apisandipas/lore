@@ -155,3 +155,16 @@ describe("resolving", () => {
     expect(loadGraph(tree()).find("context").error).toBe("'context' matches 2 notes:\n  CONTEXT.md\n  src/CONTEXT.md");
   });
 });
+
+describe("validation", () => {
+  test("check, new and set report a bad link field the same way", async () => {
+    const tree = repo({
+      "docs/specs/s.md": "---\nstatus: draft\n---\n# S\n",
+      "docs/efforts/e.md": '---\nspecs: ["[[nope]]"]\n---\n# E\n',
+    });
+    const message = "'specs' links to 'nope', which matches no note";
+    expect((await run(["check"], tree)).out).toContain(`docs/efforts/e.md:2: ${message}`);
+    expect((await run(["set", "e", "specs=nope"], tree)).out).toBe(`lore set: docs/efforts/e.md: ${message}\n`);
+    expect((await run(["new", "Effort", "F", "--link", "specs=nope"], tree)).out).toBe(`lore new: --link ${message}\n`);
+  });
+});
