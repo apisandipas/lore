@@ -24,3 +24,13 @@ export function findNote(g: Graph, ref: string): { note?: Note; error?: string }
   }
   return { error: `no note matches '${ref}'` };
 }
+
+// A note named for a link field: exactly one note, of the type the field links to.
+export function linkTarget(g: Graph, field: string, link: string, ref: string): { note?: Note; error?: string } {
+  const { note, error } = findNote(g, ref);
+  if (!note) return { error: `${field}: ${error}` };
+  if (note.type?.toLowerCase() !== link.toLowerCase()) {
+    return { error: `${field}: ${note.stem} is ${a(note.type ?? "untyped note")}; ${field} links to ${a(link)}` };
+  }
+  return { note };
+}
