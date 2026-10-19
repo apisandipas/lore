@@ -21,7 +21,7 @@ Read `.lore/WORKFLOW.md` first if it exists; the project's process wins over thi
    - Link related notes with `[[name]]`. If the spec governs code that already exists, add `anchors:` to its frontmatter (a path, a glob, or `symbol:Name`).
    - A choice between alternatives that needs its reasons kept belongs in a decision; use `lore-decide` and link it.
 5. **Check.** Run `lore check` and fix anything it reports about this spec.
-6. **Accept only with the user.** Show the spec and ask whether it is right. Set `status: accepted` only when the user says so. Until then it stays `draft`.
+6. **Accept only with the user.** Show the spec and ask whether it is right. Run `lore set <spec> status=accepted` only when the user says so. Until then it stays `draft`.
 
 If the spec has an effort planned against it and you change its body, `lore check` will report drift on that effort. That is intended: say so, and hand off to `lore-plan` rather than `lore-build`.
 

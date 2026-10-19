@@ -18,7 +18,7 @@ Read `.lore/WORKFLOW.md` first if it exists; the project's process wins over thi
    - A directory whose purpose or rules changed gets its `CONTEXT.md` updated, or a new one.
    - Code the spec or a decision now governs, but no anchor or citation reaches, gets an `anchors:` entry on that note.
    - Run `lore context` on a few of the changed files and check the right notes come back.
-5. **Close it.** Set the effort's status to `done`. Leave the spec `accepted`; set it to `retired` only if the user says it no longer applies.
+5. **Close it.** `lore set <effort> status=done`. Leave the spec `accepted`; `lore set <spec> status=retired` only if the user says it no longer applies.
 6. **Commit** if that is how the project works, and tell the user what shipped.
 
 End with one line: `Next: lore-next`.

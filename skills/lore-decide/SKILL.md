@@ -24,7 +24,7 @@ Record a decision when a later reader, human or agent, would look at the code an
    - `## Decision`: the choice. Its first paragraph is the summary `lore context` shows beside the code, so make it stand alone.
    - `## Consequences`: what gets easier, what gets harder, what is now ruled out.
    - Link the spec or effort that prompted it with `[[name]]`. Add `anchors:` for code it governs.
-4. **Agree it.** It starts `proposed`. Set `status: accepted` once the user agrees.
+4. **Agree it.** It starts `proposed`. Once the user agrees, `lore set <id> status=accepted`.
 5. **Cite it** in code where the choice shows: a comment such as `// see lore:0012`.
 6. **Check.** `lore check`. After superseding, it lists code still citing the old decision; update those citations.
 
