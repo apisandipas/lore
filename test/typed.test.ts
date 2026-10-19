@@ -185,6 +185,34 @@ describe("set refuses", () => {
   });
 });
 
+describe("set writes", () => {
+  test("replaces, sets lists, adds without duplicates, and leaves the rest alone", async () => {
+    const c = copy();
+    writeFileSync(join(c.dir, "docs/specs/billing.md"), "---\ntype: Spec\nstatus: accepted\n---\n# Billing\n");
+    const body = c.read("docs/efforts/reset.md").split("---\n")[2];
+    const frontmatter = () => c.read("docs/efforts/reset.md").split("---\n")[1];
+
+    expect((await c.lore("set", "reset", "status=done")).out).toBe("updated docs/efforts/reset.md\n  status: done\n");
+    expect(frontmatter()).toBe('type: Effort\nstatus: done\nspecs: ["[[auth]]"]\n');
+
+    // The same spec under another name is not added twice.
+    await c.lore("set", "reset", "specs+=docs/specs/auth.md", "specs+=billing");
+    expect(frontmatter()).toContain('specs: ["[[auth]]", "[[billing]]"]\n');
+    await c.lore("set", "reset", "specs=billing", "specs=auth");
+    expect(frontmatter()).toContain('specs: ["[[billing]]", "[[auth]]"]\n');
+
+    await c.lore("set", "reset", "anchors+=src/**", "aliases=pw-reset", "title=Password reset, again");
+    expect(frontmatter()).toBe(
+      'type: Effort\nstatus: done\nspecs: ["[[billing]]", "[[auth]]"]\nanchors: ["src/**"]\naliases: [pw-reset]\ntitle: "Password reset, again"\n',
+    );
+    expect(c.read("docs/efforts/reset.md").split("---\n")[2]).toBe(body);
+    expect((await c.lore("check")).out).not.toContain("reset.md");
+
+    const json = JSON.parse((await c.lore("set", "reset", "status=active", "anchors+=src/session.ts", "--json")).out);
+    expect(json).toEqual({ path: "docs/efforts/reset.md", set: { status: "active", anchors: ["src/**", "src/session.ts"] } });
+  });
+});
+
 describe("tick", () => {
   test("ticks the first open item and names the next, until none are left", async () => {
     const c = copy();
