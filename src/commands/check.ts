@@ -1,4 +1,4 @@
-import { SUPERSEDED, type Graph } from "../graph";
+import { DONE, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { frozenEntries, specHash } from "./freeze";
 import { a, type Result } from "./shared";
@@ -93,6 +93,8 @@ function checkSuperseding(g: Graph, note: Note, at: At) {
 }
 
 function checkFrozen(g: Graph, note: Note, at: At) {
+  // A done effort's frozen versions are history; lore next reports the change.
+  if (note.status === DONE) return;
   for (const [path, hash] of frozenEntries(note)) {
     const spec = g.byPath.get(path);
     if (!spec) at(fieldLine(note, "frozen"), `frozen ${path} no longer exists`);

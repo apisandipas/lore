@@ -172,6 +172,23 @@ describe("freeze", () => {
     expect((await c.lore("check")).out).not.toContain("changed since");
   });
 
+  test("check skips the frozen specs of a done effort, until it is reopened", async () => {
+    const c = copy();
+    await c.lore("freeze", "reset");
+    const [spec, effort] = [join(c.dir, "docs/specs/auth.md"), join(c.dir, "docs/efforts/reset.md")];
+    writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
+    writeFileSync(effort, setField(readFileSync(effort, "utf8"), "status", "done"));
+    expect((await c.lore("check")).out).not.toContain("reset.md:");
+
+    // The broken specs link is still reported; the frozen entry is not.
+    rmSync(spec);
+    expect((await c.lore("check")).out).not.toContain("no longer exists");
+
+    writeFileSync(spec, "---\ntype: Spec\nstatus: accepted\n---\n# Auth\n\nChanged.\n");
+    writeFileSync(effort, setField(readFileSync(effort, "utf8"), "status", "active"));
+    expect((await c.lore("check")).out).toContain("docs/efforts/reset.md:5: docs/specs/auth.md changed since this was frozen");
+  });
+
   test("show reports checklist progress", async () => {
     expect((await lore("show", "reset")).out).toContain("Checklist: 1 of 3 done");
   });
