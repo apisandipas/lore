@@ -65,3 +65,29 @@ describe("check", () => {
     ).toEqual(["docs/efforts/x.md:3: 'owner' takes one value, not a list"]);
   });
 });
+
+describe("failures", () => {
+  test("an unreadable schema.yml exits 1", async () => {
+    const { code, out } = await run(["check"], memoryTree({ ".lore/schema.yml": "types: [oops" }));
+    expect(code).toBe(1);
+    expect(out).toStartWith("lore check: ");
+  });
+
+  test("a schema type that is not a mapping exits 1", async () => {
+    const { code, out } = await run(["list"], memoryTree({ ".lore/schema.yml": "types: [Spec]" }));
+    expect(code).toBe(1);
+    expect(out).toBe("lore list: schema.yml: types must be a mapping of type names\n");
+  });
+
+  test("rg missing from PATH exits 1 and says so", async () => {
+    const path = process.env.PATH;
+    process.env.PATH = "/nonexistent";
+    try {
+      const { code, out } = await run(["check"], join(import.meta.dir, "fixtures", "typed"));
+      expect(code).toBe(1);
+      expect(out).toBe("lore check: lore needs ripgrep (rg) on PATH\n");
+    } finally {
+      process.env.PATH = path;
+    }
+  });
+});

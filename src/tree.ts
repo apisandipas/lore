@@ -95,7 +95,8 @@ export function memoryTree(files: Record<string, string>, root = "/memory"): Tre
 function rg(root: string, args: string[]): string[] {
   let proc;
   try {
-    proc = Bun.spawnSync(["rg", ...args], { cwd: root, stdout: "pipe", stderr: "pipe" });
+    // The live env, so PATH is looked up as it is now rather than at startup.
+    proc = Bun.spawnSync(["rg", ...args], { cwd: root, env: process.env, stdout: "pipe", stderr: "pipe" });
   } catch {
     throw new Error("lore needs ripgrep (rg) on PATH");
   }

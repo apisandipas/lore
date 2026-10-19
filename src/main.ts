@@ -90,7 +90,14 @@ export async function run(
 
   // init writes the .lore/ that loading a graph would read.
   if (command === "init") return runInit(cwd, { json: values.json });
-  const g = loadGraph(typeof at === "string" ? diskTree(at) : at);
+  let g;
+  try {
+    g = loadGraph(typeof at === "string" ? diskTree(at) : at);
+  } catch (e) {
+    // The repo could not be read (schema.yml unparseable, rg missing): a
+    // failure, not a usage error.
+    return { code: 1, out: `lore ${command}: ${(e as Error).message}\n` };
+  }
   switch (command) {
     case "context":
       return runContext(g, cwd, positionals, {
@@ -132,6 +139,6 @@ if (import.meta.main) {
     process.exit(code);
   } catch (e) {
     process.stderr.write(`lore: ${(e as Error).message}\n`);
-    process.exit(2);
+    process.exit(1);
   }
 }
