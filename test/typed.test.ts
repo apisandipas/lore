@@ -152,6 +152,39 @@ describe("new --link writes", () => {
   });
 });
 
+describe("set refuses", () => {
+  test("malformed assignments as usage errors", async () => {
+    for (const args of [["reset"], ["reset", "status"], ["reset", "=done"], ["reset", "status="]]) {
+      expect((await lore("set", ...args)).code).toBe(2);
+    }
+  });
+
+  test("bad fields and values, and writes nothing", async () => {
+    const c = copy();
+    const before = c.read("docs/efforts/reset.md");
+    const cases: [string[], string][] = [
+      [["reset", "stauts=done"], "'stauts' is not a field of Effort (fields: type, status, title, summary, aliases, anchors, specs)"],
+      [["reset", "status=finished"], "'status' cannot be 'finished'; expected one of planned, active, done"],
+      [["reset", "type=Chore"], "type 'Chore' is not in .lore/schema.yml"],
+      [["reset", "specs=nope"], "specs: no note matches 'nope'"],
+      [["reset", "specs=0002"], "specs: 0002-rotating-tokens is a Decision; specs links to a Spec"],
+      [["reset", "status=active", "status=done"], "status takes one value"],
+      [["reset", "title+=More"], "title takes one value"],
+      [["0002", "supersedes=0001"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
+      [["0002", "status=superseded"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
+      // One bad assignment stops the good ones too.
+      [["reset", "status=done", "specs=nope"], "specs: no note matches 'nope'"],
+    ];
+    for (const [args, message] of cases) {
+      const note = (await c.lore("show", args[0]!, "--json")).out;
+      const { code, out } = await c.lore("set", ...args);
+      expect(out).toBe(`lore set: ${JSON.parse(note).path}: ${message}\n`);
+      expect(code).toBe(1);
+    }
+    expect(c.read("docs/efforts/reset.md")).toBe(before);
+  });
+});
+
 describe("tick", () => {
   test("ticks the first open item and names the next, until none are left", async () => {
     const c = copy();

@@ -12,6 +12,7 @@ import { runInit } from "./commands/init";
 import { runList } from "./commands/list";
 import { runNew, type Link } from "./commands/new";
 import { runNext } from "./commands/next";
+import { runSet } from "./commands/set";
 import { runShow } from "./commands/show";
 import { runTick } from "./commands/tick";
 import type { Result } from "./commands/shared";
@@ -38,6 +39,7 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
     case "next":
     case "init":
     case "tick":
+    case "set":
       break;
     default:
       return { code: 2, out: `lore: unknown command '${command}'\n\n${help}` };
@@ -91,6 +93,8 @@ export async function run(argv: string[], cwd = process.cwd()): Promise<Result> 
       return runNext(g, { json: values.json });
     case "tick":
       return runTick(g, positionals, { json: values.json });
+    case "set":
+      return runSet(g, positionals, { json: values.json });
   }
 }
 
