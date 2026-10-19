@@ -15,8 +15,8 @@ export type Note = {
   aliases: string[];
   anchors: string[];
   links: Link[];
-  // `next` is the text of the first unchecked item.
-  checklist: { done: number; total: number; next?: string };
+  // `next` is the text of the first unchecked item, `nextLine` its line in the file.
+  checklist: { done: number; total: number; next?: string; nextLine?: number };
   body: string;
 };
 
@@ -77,7 +77,10 @@ export function parseNote(path: string, text: string): Note {
     if (box) {
       checklist.total++;
       if (box[1] !== " ") checklist.done++;
-      else checklist.next ??= box[2]!.trim();
+      else if (checklist.next === undefined) {
+        checklist.next = box[2]!.trim();
+        checklist.nextLine = bodyStart + i + 1;
+      }
     }
     for (const target of linkTargets(l.replace(/`[^`]*`/g, ""))) links.push({ target, line: bodyStart + i + 1 });
   });

@@ -42,6 +42,11 @@ describe("parseNote", () => {
     ]);
   });
 
+  test("checklist counts items and finds the first unchecked one, skipping fences", () => {
+    const note = parseNote("docs/x.md", "---\na: 1\n---\n# X\n\n- [x] one\n```\n- [ ] fenced\n```\n- [ ] two\n- [ ] three\n");
+    expect(note.checklist).toEqual({ done: 1, total: 3, next: "two", nextLine: 10 });
+  });
+
   test("title and summary fall back to heading and first paragraph", () => {
     const note = parseNote("docs/x.md", "# Heading\n\nFirst line\nsecond line.\n\nLater.");
     expect(note.title).toBe("Heading");
