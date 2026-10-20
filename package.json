@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "test": "bun test",
+    "test:emacs": "emacs --batch -Q -L editors/emacs -l lore-test -f ert-run-tests-batch-and-exit",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

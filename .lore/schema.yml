@@ -1,6 +1,7 @@
 notes: docs
 ignore:
   - test/**
+  - editors/emacs/*-test.el
   - skills/**
   - README.md
 types:

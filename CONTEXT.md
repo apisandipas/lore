@@ -13,4 +13,6 @@ A CLI that indexes typed Markdown notes and their links to code.
 
 Tests build repos in memory with `memoryTree` (`test/graph.test.ts`); the fixtures under `test/fixtures/` cover the disk and rg.
 
+`editors/emacs/lore.el` is the Emacs front end: it only runs `lore ... --json` and keeps no index of its own; its ERT tests (`lore-test.el`) run against a real repo in a temp directory.
+
 Design notes live in `docs/`.

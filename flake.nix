@@ -35,6 +35,16 @@
             license = pkgs.lib.licenses.mit;
           };
         };
+
+        # The Emacs package, for `epkgs: [ lore.packages.${system}.emacs ]`.
+        emacs = pkgs.emacsPackages.trivialBuild {
+          pname = "lore";
+          version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
+          src = pkgs.lib.fileset.toSource {
+            root = ./editors/emacs;
+            fileset = ./editors/emacs/lore.el;
+          };
+        };
       });
 
       checks = forAllSystems (pkgs: {
@@ -48,6 +58,22 @@
           buildPhase = ''
             export HOME=$TMPDIR
             bun test --no-install
+          '';
+          installPhase = "touch $out";
+        };
+
+        # lore.el against a real repo and the packaged lore.
+        emacs = pkgs.stdenvNoCC.mkDerivation {
+          name = "lore-emacs-tests";
+          src = ./editors/emacs;
+          nativeBuildInputs = [
+            pkgs.emacs-nox
+            pkgs.git
+            self.packages.${pkgs.stdenv.hostPlatform.system}.default
+          ];
+          buildPhase = ''
+            export HOME=$TMPDIR
+            emacs --batch -Q -L . -l lore-test -f ert-run-tests-batch-and-exit
           '';
           installPhase = "touch $out";
         };

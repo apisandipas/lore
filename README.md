@@ -211,6 +211,25 @@ After the first message, it's mostly "go ahead".
 
 </details>
 
+## Emacs
+
+[`editors/emacs/lore.el`](editors/emacs/lore.el) puts lore where you edit. In any file of a lore repo:
+
+- **Sidebar.** `lore-sidebar-mode` keeps a side window listing the notes that govern the selected file, with why each matched and its summary; it follows you between buffers.
+- **Follow.** `M-.` on a citation in code or a `[[link]]` in a note opens the note; `M-?` lists the code citing it and the notes linking to it. Elsewhere `M-.` is untouched.
+- **Read.** Eldoc shows the summary of the note at point, and the mode line shows how many notes govern the file.
+- **Write.** Completion after `[[` or `lore:` offers note names; Flymake shows `lore check` problems for the file, as saved.
+- **Work.** `lore-next`, `lore-show`, `lore-check` (a compilation buffer), `lore-new`, `lore-tick` and `lore-freeze` sit on `lore-command-map`.
+- **Org.** `[[lore:<id>]]` is a link type.
+
+```elisp
+(require 'lore)                 ; or the flake's packages.<system>.emacs
+(global-lore-mode 1)
+(keymap-global-set "C-c l" lore-command-map)
+```
+
+`bun run test:emacs` runs its tests against a real repo; `nix flake check` runs them too.
+
 ## Configuration
 
 `.lore/schema.yml` at the repo root. Without it, lore uses the git root and `docs/`, and checks links, citations and anchors but not types.
