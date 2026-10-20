@@ -117,3 +117,55 @@ describe("reading Org notes", () => {
     ]);
   });
 });
+
+describe("writing Org notes", () => {
+  const spec = "#+TITLE: S\n#+status: draft\n\n* Goal\nDo S.\n";
+
+  test("set changes #+ lines in place, keeps the key's case, and adds new ones after the last", async () => {
+    const tree = repo({ "docs/specs/s.org": spec });
+    expect((await run(["set", "s", "status=accepted", "title=Items: the spec", "aliases=[x]"], tree)).code).toBe(0);
+    expect(tree.read("docs/specs/s.org")).toBe('#+TITLE: Items: the spec\n#+status: accepted\n#+aliases: ["[x]"]\n\n* Goal\nDo S.\n');
+    const n = loadGraph(tree).byPath.get("docs/specs/s.org")!;
+    expect([n.title, n.status, n.frontmatter.aliases]).toEqual(["Items: the spec", "accepted", ["[x]"]]);
+  });
+
+  test("a note with no #+ lines gets them at the top", async () => {
+    const tree = repo({ "docs/specs/s.org": "* S\nText.\n" });
+    await run(["set", "s", "status=draft"], tree);
+    expect(tree.read("docs/specs/s.org")).toBe("#+status: draft\n* S\nText.\n");
+  });
+
+  test("links are written as Org reads them, and += adds to links written by hand", async () => {
+    const tree = repo({
+      "docs/specs/a.org": "#+status: accepted\n",
+      "docs/specs/b.org": "#+status: accepted\n",
+      "docs/specs/c.org": "#+status: accepted\n",
+      "docs/efforts/e.org": "#+specs: [[a]] [[b]]\n\n* Tasks\n- [ ] one\n",
+    });
+    expect((await run(["set", "e", "specs+=c"], tree)).code).toBe(0);
+    expect(tree.read("docs/efforts/e.org")).toStartWith("#+specs: [[a]] [[b]] [[c]]\n");
+    const g = loadGraph(tree);
+    expect(g.byPath.get("docs/efforts/e.org")!.links.map((l) => l.target)).toEqual(["a", "b", "c"]);
+    expect(checkGraph(g)).toEqual([]);
+  });
+
+  test("freeze writes a map that reads back, all-digit hashes included, and drift is reported", async () => {
+    // This body hashes to 451752723810, which unquoted YAML reads as a number.
+    const tree = repo({
+      "docs/specs/s.md": "---\nstatus: accepted\n---\n# S\n\n1148\n",
+      "docs/efforts/e.org": "#+specs: [[s]]\n\n* Tasks\n- [ ] one\n",
+    });
+    expect((await run(["freeze", "e"], tree)).code).toBe(0);
+    expect(tree.read("docs/efforts/e.org")).toStartWith('#+specs: [[s]]\n#+frozen: {"docs/specs/s.md": "451752723810"}\n');
+    expect((await run(["check"], tree)).code).toBe(0);
+    tree.write("docs/specs/s.md", "---\nstatus: accepted\n---\n# S\n\nchanged\n");
+    expect((await run(["check"], tree)).out).toContain("docs/specs/s.md changed since this was frozen");
+  });
+
+  test("tick writes [X], ticks a started [-] item, and skips blocks", async () => {
+    const tree = repo({ "docs/efforts/e.org": "#+specs: [[s]]\n#+begin_src\n- [ ] code\n#+end_src\n1. [-] started\n+ [ ] two\n" });
+    expect((await run(["tick", "e"], tree)).out).toBe("ticked docs/efforts/e.org: started\nnext: two  (1 of 2 done)\n");
+    expect((await run(["tick", "e"], tree)).out).toBe("ticked docs/efforts/e.org: two\nall 2 items done\n");
+    expect(tree.read("docs/efforts/e.org")).toBe("#+specs: [[s]]\n#+begin_src\n- [ ] code\n#+end_src\n1. [X] started\n+ [X] two\n");
+  });
+});

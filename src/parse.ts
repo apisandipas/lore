@@ -87,7 +87,8 @@ const markdown: Syntax = {
 
 const org: Syntax = {
   // The #+key: lines at the top, before anything else. A value in brackets or
-  // quotes is YAML (a list, a map, a quoted string); anything else is text.
+  // quotes is YAML (a list, a map, a quoted string); anything else, links
+  // included, is text.
   header(lines) {
     const fields: Record<string, unknown> = {};
     const fieldLines: Record<string, number> = {};
@@ -129,7 +130,7 @@ const org: Syntax = {
 };
 
 function orgValue(text: string): unknown {
-  if (!/^[\[{"']/.test(text)) return text;
+  if (!/^[\[{"']/.test(text) || text.startsWith("[[")) return text;
   return (Bun.YAML.parse(`v: ${text}`) as { v: unknown }).v;
 }
 

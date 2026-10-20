@@ -17,11 +17,11 @@ lore indexes typed Markdown and Org notes and the links between notes and code, 
 
 ### Org notes
 A note may be an Org file (`.org`) instead of Markdown, and both can sit side by side. Everything above holds for it, written the Org way:
-- **Fields** are the `#+key: value` lines at the top of the file, before anything else; keys are matched in any case. A value is read as YAML, so `#+anchors: [src/a.ts, src/b/**]` is a list and `#+status: draft` a string.
+- **Fields** are the `#+key: value` lines at the top of the file, before anything else; keys are matched in any case. A value in brackets or quotes is read as YAML, so `#+anchors: [src/a.ts, src/b/**]` is a list; anything else, links included, is text, so `#+status: draft` is a string and `#+specs: [[a]] [[b]]` links two notes.
 - **Title** is `#+title:`, else the first `*` heading. **Summary** is `#+summary:`, else the first paragraph; a type's `summary: <section>` names a `*` heading.
 - **Links** are `[[name]]`, `[[name][label]]` and `[[file:path.org][label]]`. A `file:` path is relative to the note, as Org reads it, and `::search` after it is ignored. Links to URLs (`https:`, `mailto:` and other schemes) are not notes.
 - **Checklists** are Org's: `- [ ]`, `+ [ ]` or `1. [ ]`, done when `[X]`. `[-]` counts as open. Items inside `#+begin_…`/`#+end_…` blocks do not count. `tick` writes `[X]`.
-- **Writing.** `set` and `freeze` change `#+key:` lines in place, add new ones after the last of them, and write lists and maps as YAML flow (`[a, b]`, `{"path": "hash"}`). `new` writes an Org note for a type whose `format` is `org` in `schema.yml`, from `.lore/templates/<Type>.org` if there is one.
+- **Writing.** `set` and `freeze` change `#+key:` lines in place, add new ones after the last of them, write a list of links as links (`[[a]] [[b]]`), other lists and maps as YAML flow (`[a, b]`, `{"path": "hash"}`), and quote text only where it would otherwise read as YAML. `new` writes an Org note for a type whose `format` is `org` in `schema.yml`, from `.lore/templates/<Type>.org` if there is one.
 - `CONTEXT.md` stays Markdown.
 
 ## Commands

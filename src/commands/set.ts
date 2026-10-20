@@ -1,4 +1,4 @@
-import { render, updateNote, type Fields } from "../edit";
+import { link, render, updateNote, type Fields } from "../edit";
 import { fieldProblems } from "../validate";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";
@@ -58,7 +58,11 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
 
     let list = written;
     if (add) {
-      const existing = toList(note.frontmatter[field]);
+      // An Org value can hold several links as text: [[a]] [[b]].
+      const existing = toList(note.frontmatter[field]).flatMap((v) => {
+        const targets = def.link ? linkTargets(v) : [];
+        return targets.length > 1 ? targets.map(link) : [v];
+      });
       // A link already there under another name for the same note is not added twice.
       const target = (s: string) => g.resolve(linkTargets(s)[0] ?? s).note;
       const same = (a: string, b: string) => a === b || (!!def.link && !!target(a) && target(a) === target(b));

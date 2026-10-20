@@ -1,8 +1,9 @@
-import { parseNote, type Note } from "./parse";
+import { isOrg, ORG_KEYWORD, parseNote, type Note } from "./parse";
 import type { Tree } from "./tree";
 
-// Every write to a note goes through here: frontmatter fields and checkboxes.
-// Bodies are never edited (see docs/specs/lore-cli.md, Out of scope).
+// Every write to a note goes through here: frontmatter fields and checkboxes,
+// in Markdown or Org. Bodies are never edited (see docs/specs/lore-cli.md, Out
+// of scope).
 
 // A frontmatter value: a scalar, a list, or a map of scalars. null removes the field.
 export type Value = string | string[] | Record<string, string>;
@@ -14,20 +15,22 @@ export function link(stem: string): string {
 }
 
 // Sets or removes each field in order, leaving the rest of the file alone. Text
-// with no frontmatter gets one.
-export function setFields(text: string, fields: Fields): string {
+// with no frontmatter gets one. `path` picks the syntax: Org for .org.
+export function setFields(text: string, fields: Fields, path = ""): string {
+  const org = isOrg(path);
   for (const [field, value] of Object.entries(fields)) {
-    text = value === null ? removeField(text, field) : setField(text, field, render(value));
+    if (org) text = value === null ? removeOrgField(text, field) : setOrgField(text, field, renderOrg(value));
+    else text = value === null ? removeField(text, field) : setField(text, field, render(value));
   }
   return text;
 }
 
 export function createNote(tree: Tree, path: string, fields: Fields, body: string): void {
-  tree.write(path, setFields(body, fields));
+  tree.write(path, setFields(body, fields, path));
 }
 
 export function updateNote(tree: Tree, path: string, fields: Fields): void {
-  tree.write(path, setFields(read(tree, path), fields));
+  tree.write(path, setFields(read(tree, path), fields, path));
 }
 
 // Ticks the first unchecked item and returns it with the checklist after.
@@ -36,7 +39,8 @@ export function tickNote(tree: Tree, path: string): { item: string; checklist: N
   const { next: item, nextLine } = parseNote(path, text).checklist;
   if (item === undefined || nextLine === undefined) return undefined;
   const lines = text.split("\n");
-  lines[nextLine - 1] = lines[nextLine - 1]!.replace("[ ]", "[x]");
+  // Org reads only an upper-case X as done, and [-] is a started item.
+  lines[nextLine - 1] = lines[nextLine - 1]!.replace(/\[[ -]\]/, isOrg(path) ? "[X]" : "[x]");
   const after = lines.join("\n");
   tree.write(path, after);
   return { item, checklist: parseNote(path, after).checklist };
@@ -59,6 +63,60 @@ function scalar(s: string, inList = false): string {
     if (inList ? Array.isArray(back) && back.length === 1 && back[0] === s : back === s) return s;
   } catch {}
   return JSON.stringify(s);
+}
+
+// An Org #+ value. Text is written as it is; it is quoted only when it would
+// otherwise read as YAML, or lose its spaces. A list of links is written the
+// way Org reads links, one after another.
+function renderOrg(value: Value): string {
+  if (typeof value === "string") return orgScalar(value);
+  if (Array.isArray(value)) {
+    if (value.length && value.every((v) => /^\[\[[^\[\]]+\]\]$/.test(v))) return value.join(" ");
+    return `[${value.map((v) => scalar(v, true)).join(", ")}]`;
+  }
+  return `{${Object.entries(value)
+    .map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`)
+    .join(", ")}}`;
+}
+
+function orgScalar(s: string): string {
+  const yaml = /^[\[{"']/.test(s) && !s.startsWith("[[");
+  return yaml || s !== s.trim() || s.includes("\n") || !s ? JSON.stringify(s) : s;
+}
+
+// The #+ lines at the top, as [start, end): blank lines among them count.
+function orgHeader(lines: string[]): number {
+  let end = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (ORG_KEYWORD.test(lines[i]!)) end = i + 1;
+    else if (lines[i]!.trim()) break;
+  }
+  return end;
+}
+
+function orgFieldLine(lines: string[], field: string): number {
+  const end = orgHeader(lines);
+  return lines.findIndex((l, i) => i < end && ORG_KEYWORD.exec(l)?.[1]!.toLowerCase() === field.toLowerCase());
+}
+
+function setOrgField(text: string, field: string, value: string): string {
+  const lines = text.split("\n");
+  const at = orgFieldLine(lines, field);
+  if (at >= 0) {
+    // Keep the key as the file spells it: #+TITLE stays upper case.
+    lines[at] = `#+${ORG_KEYWORD.exec(lines[at]!)![1]}: ${value}`;
+    return lines.join("\n");
+  }
+  const end = orgHeader(lines);
+  lines.splice(end, 0, `#+${field}: ${value}`);
+  return lines.join("\n");
+}
+
+function removeOrgField(text: string, field: string): string {
+  const lines = text.split("\n");
+  const at = orgFieldLine(lines, field);
+  if (at >= 0) lines.splice(at, 1);
+  return lines.join("\n");
 }
 
 function key(k: string): string {
