@@ -5,6 +5,8 @@ export type TypeDef = {
   dir?: string;
   id?: string;
   summary?: string;
+  // The syntax `lore new` writes a note of this type in.
+  format: "md" | "org";
   freeze?: string[];
   fields: Record<string, FieldDef>;
 };
@@ -32,6 +34,9 @@ export function parseSchema(raw: unknown): Schema {
           many: f.many === true,
         };
       }
+      if (def.format !== undefined && def.format !== "md" && def.format !== "org") {
+        throw new Error(`schema.yml: ${name}.format must be md or org`);
+      }
       const id = typeof def.id === "string" ? def.id : undefined;
       if (id !== undefined && !ID_TOKEN.test(id)) throw new Error(`schema.yml: ${name}.id needs a {n} or {n:4} counter`);
       types.push({
@@ -39,6 +44,7 @@ export function parseSchema(raw: unknown): Schema {
         dir: typeof def.dir === "string" ? def.dir.replace(/^\.\/|\/$/g, "") : undefined,
         id,
         summary: typeof def.summary === "string" ? def.summary : undefined,
+        format: def.format === "org" ? "org" : "md",
         freeze: Array.isArray(def.freeze) ? def.freeze.filter((x): x is string => typeof x === "string") : undefined,
         fields,
       });

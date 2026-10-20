@@ -74,7 +74,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     const next = Math.max(0, ...inType.map((n) => id.number(n.stem) ?? 0)) + 1;
     stem = `${id.format(next)}-${stem}`;
   }
-  const path = `${def.dir}/${stem}.md`;
+  const path = `${def.dir}/${stem}.${def.format}`;
   const { tree } = g.repo;
   if (tree.exists(path)) return { code: 1, out: `lore new: ${path} already exists\n` };
 
@@ -87,8 +87,8 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
   if (anchors.length) fields.anchors = anchors;
 
-  const template = tree.read(`.lore/templates/${def.name}.md`);
-  const body = template?.replaceAll("{{title}}", title) ?? `# ${title}\n`;
+  const template = tree.read(`.lore/templates/${def.name}.${def.format}`);
+  const body = template?.replaceAll("{{title}}", title) ?? `${def.format === "org" ? "*" : "#"} ${title}\n`;
 
   createNote(tree, path, fields, body);
   for (const old of olds) updateNote(tree, old.path, { status: SUPERSEDED, anchors: null });

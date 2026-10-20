@@ -17,5 +17,5 @@ The note model stays as it is; only the syntax around it varies. `parse.ts` pick
 
 - [x] Read Org notes: `#+key:` fields, title, summary and sections, links (`[[x][label]]`, relative `file:`, no URLs), checklists and blocks; the graph loads `.org` files and resolves names without `.org`. Tests on an Org fixture.
 - [x] Write Org notes: `set`, `freeze` and `tick` on an `.org` note change `#+key:` lines and write `[X]`, and the result reads back the same. Tests, including an all-digit frozen hash.
-- [ ] `lore new` writes an Org note for a type with `format: org`, from `.lore/templates/<Type>.org` when present. Tests.
+- [x] `lore new` writes an Org note for a type with `format: org`, from `.lore/templates/<Type>.org` when present. Tests.
 - [ ] A dogear-shaped repo: Org specs with `[[file:…][…]]` links and Markdown efforts planned against them pass `check`, `next`, `context` and `freeze`. README mentions Org.

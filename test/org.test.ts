@@ -169,3 +169,26 @@ describe("writing Org notes", () => {
     expect(tree.read("docs/efforts/e.org")).toBe("#+specs: [[s]]\n#+begin_src\n- [ ] code\n#+end_src\n1. [X] started\n+ [X] two\n");
   });
 });
+
+describe("new Org notes", () => {
+  test("a type with format: org gets an .org note, from its .org template when there is one", async () => {
+    const tree = repo({ ".lore/templates/Spec.org": "* {{title}}\n\n* Goal\n\n* Rules\n", ".lore/templates/Spec.md": "# not this\n" });
+    expect((await run(["new", "Spec", "Store cover images"], tree)).out).toBe("created docs/specs/store-cover-images.org\n");
+    expect(tree.read("docs/specs/store-cover-images.org")).toBe("#+type: Spec\n#+status: draft\n* Store cover images\n\n* Goal\n\n* Rules\n");
+    const n = loadGraph(tree).byPath.get("docs/specs/store-cover-images.org")!;
+    expect([n.title, n.type, n.status]).toEqual(["Store cover images", "Spec", "draft"]);
+  });
+
+  test("without a template, the title is a * heading; Markdown types are unchanged", async () => {
+    const tree = repo({});
+    await run(["new", "Spec", "Tags"], tree);
+    expect(tree.read("docs/specs/tags.org")).toBe("#+type: Spec\n#+status: draft\n* Tags\n");
+    await run(["new", "Effort", "Tag views", "--link", "specs=tags"], tree);
+    expect(tree.read("docs/efforts/tag-views.md")).toBe('---\ntype: Effort\nstatus: planned\nspecs: ["[[tags]]"]\n---\n# Tag views\n');
+  });
+
+  test("format must be md or org", async () => {
+    const { code, out } = await run(["list"], memoryTree({ ".lore/schema.yml": "types:\n  Spec: { format: rst }\n" }));
+    expect([code, out]).toEqual([1, "lore list: schema.yml: Spec.format must be md or org\n"]);
+  });
+});
