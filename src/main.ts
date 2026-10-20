@@ -60,6 +60,8 @@ export async function run(
         json: { type: "boolean", default: false },
         full: { type: "boolean", default: false },
         budget: { type: "string" },
+        session: { type: "string" },
+        forget: { type: "boolean", default: false },
         type: { type: "string" },
         summaries: { type: "boolean", default: false },
         supersedes: { type: "string", multiple: true, default: [] },
@@ -104,6 +106,8 @@ export async function run(
         full: values.full,
         json: values.json,
         budget,
+        session: values.session,
+        forget: values.forget,
       });
     case "show":
       return runShow(g, positionals, { json: values.json });

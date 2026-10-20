@@ -21,6 +21,10 @@ export type Graph = {
   find(ref: string): { note?: Note; error?: string };
   backlinks(note: Note): Backlink[];
   anchorFiles(anchor: string): string[];
+  // Whether one file falls under an anchor, without listing the anchor's
+  // files: cheap enough to ask of every anchor for every file. A path anchor
+  // also covers a file that does not exist yet.
+  anchorMatches(anchor: string, file: string): boolean;
   // Notes whose `supersedes` field links to this one, and the ones it links to.
   supersededBy(note: Note): Note[];
   supersedes(note: Note): Note[];
@@ -123,6 +127,21 @@ export function loadGraph(tree: Tree): Graph {
     return found;
   };
 
+  const globs = new Map<string, Bun.Glob>();
+  const anchorMatches = (anchor: string, file: string): boolean => {
+    if (anchor.startsWith("symbol:")) {
+      const name = anchor.slice("symbol:".length).trim();
+      if (!name || !fileSet.has(file) || isNoteFile(file)) return false;
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(String.raw`(?<!\w)(?:${escaped})(?!\w)`).test(tree.read(file) ?? "");
+    }
+    const pattern = anchor.trim().replace(/^\.\//, "").replace(/\/$/, "");
+    if (!GLOB_CHAR.test(pattern)) return file === pattern || file.startsWith(`${pattern}/`);
+    let glob = globs.get(pattern);
+    if (!glob) globs.set(pattern, (glob = new Bun.Glob(pattern)));
+    return glob.match(file);
+  };
+
   const backlinks = (note: Note): Backlink[] =>
     notes.flatMap((from) => from.links.filter((link) => resolve(link.target).note === note).map((link) => ({ from, link })));
 
@@ -146,7 +165,7 @@ export function loadGraph(tree: Tree): Graph {
     return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchorFiles, supersedes, supersededBy, current, isA };
+  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchorFiles, anchorMatches, supersedes, supersededBy, current, isA };
 }
 
 // How narrowly a path anchor targets code: the literal prefix before any glob.

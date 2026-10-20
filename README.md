@@ -70,7 +70,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 | Command | What it does |
 |---|---|
 | `lore init` | Writes `.lore/` with the default schema, note templates and a `WORKFLOW.md`, keeping any file already there, and tells you how to install the skills if they are missing. |
-| `lore context <file>...` | Notes that govern the files, ranked: code citations, symbol anchors, path anchors (most specific first), `CONTEXT.md` files, then notes one frontmatter link away. `--full` adds bodies, `--budget <tokens>` caps output (default 4000). |
+| `lore context <file>...` | Notes that govern the files, ranked: code citations, symbol anchors, path anchors (most specific first), `CONTEXT.md` files, then notes one frontmatter link away. `--full` adds bodies, `--budget <tokens>` caps output (default 4000). `--session <id>` shows only notes that session has not seen, or that changed since. |
 | `lore show <note>` | A note with its supersede history, links out, links in, citing code, anchors and checklist progress. |
 | `lore list` | Every note, one line each. `--type <type>` filters; `--summaries` adds each summary, which lets an agent find notes by meaning without embeddings. |
 | `lore check` | Broken or ambiguous links and citations, anchors that match nothing, schema violations, superseding mistakes, and frozen specs that changed under an effort that is not `done`. Exits 1 when it finds problems. |
@@ -103,6 +103,23 @@ npx skills add apisandipas/lore    # the lore-* skills, per project or with -g
 Each skill ends with a line naming the next step, and reads `.lore/WORKFLOW.md` first so a project can change the flow. In a fresh session, ask for `lore-next`.
 
 Small work, such as a bug fix or a rename, skips the flow: no spec, no effort, just `lore context` before each edit and `lore check` after. The Size section of `.lore/WORKFLOW.md` says where the line falls, and a project can move it.
+
+### Claude Code hook
+
+The skills tell the agent to run `lore context` before every edit; a hook makes it happen whether or not a skill is loaded. [`hooks/claude-code.sh`](hooks/claude-code.sh) runs `lore context --session` on the file a `Read`, `Edit` or `Write` is about to touch and hands the notes to the agent. Matching `Read` matters: notes handed over at the edit arrive after the edit is made, so the agent writes the code once, then fixes it; handed over at the read, they arrive before it writes anything. Each note is shown once per session, and again only if it changes; when the conversation is compacted, the hook starts the session over so the notes come back. It needs `jq`. `test/agent/hook-trial.sh` runs real Claude Code sessions with and without it to show the difference. Copy it to `.claude/hooks/lore-context.sh` and add it to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Read|Edit|MultiEdit|Write", "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lore-context.sh" }] }
+    ],
+    "SessionStart": [
+      { "matcher": "compact", "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lore-context.sh" }] }
+    ]
+  }
+}
+```
 
 <details>
 <summary><b>The flow in plain English, with a small feature</b></summary>
