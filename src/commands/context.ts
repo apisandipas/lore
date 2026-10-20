@@ -41,7 +41,7 @@ export function contextFor(g: Graph, files: string[]): Match[] {
 
     for (const note of g.notes) {
       for (const anchor of note.anchors) {
-        if (!g.anchorFiles(anchor).includes(file)) continue;
+        if (!g.anchorMatches(anchor, file)) continue;
         if (anchor.startsWith("symbol:")) add(note, SYMBOL, 0, `uses ${anchor.slice(7)}${where}`);
         else add(note, PATH, anchorSpecificity(anchor), `anchor ${anchor}${where}`);
       }

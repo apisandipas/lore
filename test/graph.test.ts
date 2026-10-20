@@ -257,3 +257,24 @@ describe("context sessions", () => {
     expect(notes.map((n: { path: string }) => n.path)).toEqual(["CONTEXT.md"]);
   });
 });
+
+describe("anchors", () => {
+  test("anchorMatches agrees with anchorFiles for every file and anchor", () => {
+    const fixture = join(import.meta.dir, "fixtures", "typed");
+    const g = loadGraph(diskTree(fixture));
+    const anchors = [...new Set(g.notes.flatMap((n) => n.anchors)), "symbol:Session", "symbol:", "pkg/", "./pkg/auth/**/*.ts"];
+    expect(anchors.length).toBeGreaterThan(4);
+    for (const anchor of anchors) {
+      const files = g.anchorFiles(anchor);
+      for (const file of g.repo.files) expect([anchor, file, g.anchorMatches(anchor, file)]).toEqual([anchor, file, files.includes(file)]);
+    }
+  });
+
+  test("a file not written yet gets the notes anchored to its directory", async () => {
+    const tree = memoryTree({
+      "docs/money.md": "---\nanchors: [src/billing/**]\n---\n# Money in cents\n",
+      "src/billing/charge.ts": "",
+    });
+    expect((await run(["context", "src/billing/refund.ts"], tree)).out).toContain("Money in cents");
+  });
+});
