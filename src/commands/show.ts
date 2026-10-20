@@ -46,7 +46,8 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   }
   section(
     "Links to",
-    linksOut.map((l) => `${l.field ? `${l.field}: ` : ""}${l.target} → ${l.resolved ?? "unresolved"}`),
+    // A link by path (Org's file: links) needs no arrow to the same path.
+    linksOut.map((l) => `${l.field ? `${l.field}: ` : ""}${l.target === l.resolved ? l.target : `${l.target} → ${l.resolved ?? "unresolved"}`}`),
   );
   section(
     "Linked from",

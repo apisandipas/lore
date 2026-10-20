@@ -43,7 +43,7 @@ Then, in each repo: `lore init`, the [workflow skills](#workflow-skills), and fo
 
 ## Concepts
 
-**Notes** are Markdown files under the notes directory (`docs` by default), plus every `CONTEXT.md` in the repo. Frontmatter is optional:
+**Notes** are Markdown or Org files under the notes directory (`docs` by default), plus every `CONTEXT.md` in the repo. Frontmatter is optional:
 
 ```yaml
 ---
@@ -54,6 +54,8 @@ aliases: [login]                              # other names that link here
 anchors: [pkg/auth/**, "symbol:SessionManager"]
 ---
 ```
+
+**Org notes** work the same, written the Org way: fields are the `#+key: value` lines at the top (`#+status: accepted`, `#+anchors: [src/items/**]`), links are `[[name]]`, `[[name][label]]` or `[[file:prd.org][the PRD]]`, and checklists are `- [ ]` and `[X]`. Both kinds can sit in one repo, and a Markdown effort can plan against an Org spec.
 
 **Links** between notes use double brackets: by filename, by path, by alias, or by number prefix (`0007`). Links inside frontmatter fields, such as `spec: "[[auth]]"`, are the edges `lore context` follows.
 
@@ -219,6 +221,7 @@ ignore: [test/fixtures/**]          # globs excluded everywhere
 types:
   Spec:
     dir: docs/specs                 # notes here are Specs unless they say otherwise
+    format: md                      # or org: what lore new writes, from .lore/templates/Spec.org
     fields:
       status: { enum: [draft, accepted, retired], required: true }
   Decision:

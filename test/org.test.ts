@@ -101,7 +101,8 @@ describe("reading Org notes", () => {
     const context = (await run(["context", "src/features/items/save.ts"], tree)).out;
     expect(context).toContain("Items Spec  (Spec, accepted)\n  docs/specs/items.org\n  matched: anchor src/features/items/**; uses ensureSession");
     expect((await run(["list", "--type", "spec"], tree)).out).toContain("docs/specs/design.org");
-    expect((await run(["show", "items"], tree)).out).toContain("Items Spec");
+    const show = (await run(["show", "design"], tree)).out;
+    expect(show).toContain("Links to:\n  items → docs/specs/items.org\n  docs/decisions/0001-cents.md\n");
   });
 
   test("a type's summary section is a * heading", () => {
