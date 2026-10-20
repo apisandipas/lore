@@ -1,7 +1,8 @@
 #!/bin/sh
 # Claude Code hook for lore context. Silent whenever lore has nothing to add.
-#   PreToolUse (Edit, MultiEdit, Write): show the agent the notes that govern
-#     the file, each once per session and again only when it changes.
+#   PreToolUse (Read, Edit, MultiEdit, Write): show the agent the notes that
+#     govern the file, each once per session and again only when it changes.
+#     Match Read too: context added at an Edit arrives after the edit is made.
 #   SessionStart (compact): the agent lost what it was shown; start over.
 input=$(cat)
 command -v lore >/dev/null || exit 0
