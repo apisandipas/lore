@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import { openRepo, type Repo } from "./repo";
-import { parseNote, sectionSummary, type Link, type Note } from "./parse";
+import { NOTE_FILE, parseNote, sectionSummary, type Link, type Note } from "./parse";
 import { typeForPath } from "./schema";
 import type { Tree } from "./tree";
 
@@ -53,7 +53,7 @@ export function loadGraph(tree: Tree): Graph {
   const fileSet = new Set(repo.files);
 
   const isNoteFile = (f: string) =>
-    f.endsWith(".md") && (notesDir === "." || f.startsWith(`${notesDir}/`) || basename(f) === "CONTEXT.md");
+    NOTE_FILE.test(f) && (notesDir === "." || f.startsWith(`${notesDir}/`) || basename(f) === "CONTEXT.md");
 
   const { schema } = repo.config;
   const notes = repo.files
@@ -64,12 +64,12 @@ export function loadGraph(tree: Tree): Graph {
       note.def = note.type ? schema.find(note.type) : typeForPath(schema, f);
       if (note.def) note.type = note.def.name;
       const section = note.def?.summary;
-      if (section && note.frontmatter.summary === undefined) note.summary = sectionSummary(note.body, section) ?? note.summary;
+      if (section && note.frontmatter.summary === undefined) note.summary = sectionSummary(note.path, note.body, section) ?? note.summary;
       return note;
     });
   const byPath = new Map(notes.map((n) => [n.path, n]));
 
-  const keyOf = (s: string) => s.trim().replace(/^\.\//, "").replace(/\.md$/i, "").toLowerCase();
+  const keyOf = (s: string) => s.trim().replace(/^\.\//, "").replace(NOTE_FILE, "").toLowerCase();
   const relToNotes = (p: string) => (notesDir !== "." && p.startsWith(`${notesDir}/`) ? p.slice(notesDir.length + 1) : p);
 
   const resolve = (target: string): Resolution => {

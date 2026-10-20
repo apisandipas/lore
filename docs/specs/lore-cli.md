@@ -6,14 +6,23 @@ anchors: [src/**]
 ---
 # lore CLI
 
-lore indexes typed Markdown notes and the links between notes and code, and answers "what governs this file?" for agents and people.
+lore indexes typed Markdown and Org notes and the links between notes and code, and answers "what governs this file?" for agents and people.
 
 ## Notes
-- Notes are Markdown files under the configured notes directory (`docs` by default), plus every `CONTEXT.md` in the repo.
+- Notes are Markdown or Org files under the configured notes directory (`docs` by default), plus every `CONTEXT.md` in the repo.
 - Frontmatter fields every note may use: `type`, `status`, `title`, `summary`, `aliases`, `anchors`. Without `title`, the first heading is the title; without `summary`, the first paragraph.
 - Notes link to notes with double brackets, by filename, by path, or by number prefix (`0007`). Frontmatter values may hold links too; those are the edges `context` follows.
 - Code cites a note with `lore:<name>` ([[0004-code-cites-notes-with-lore-prefix]]).
 - `anchors` claim code: a path (`pkg/auth`), a glob (`pkg/auth/**`), or `symbol:Name` (any file using that word).
+
+### Org notes
+A note may be an Org file (`.org`) instead of Markdown, and both can sit side by side. Everything above holds for it, written the Org way:
+- **Fields** are the `#+key: value` lines at the top of the file, before anything else; keys are matched in any case. A value is read as YAML, so `#+anchors: [src/a.ts, src/b/**]` is a list and `#+status: draft` a string.
+- **Title** is `#+title:`, else the first `*` heading. **Summary** is `#+summary:`, else the first paragraph; a type's `summary: <section>` names a `*` heading.
+- **Links** are `[[name]]`, `[[name][label]]` and `[[file:path.org][label]]`. A `file:` path is relative to the note, as Org reads it, and `::search` after it is ignored. Links to URLs (`https:`, `mailto:` and other schemes) are not notes.
+- **Checklists** are Org's: `- [ ]`, `+ [ ]` or `1. [ ]`, done when `[X]`. `[-]` counts as open. Items inside `#+begin_…`/`#+end_…` blocks do not count. `tick` writes `[X]`.
+- **Writing.** `set` and `freeze` change `#+key:` lines in place, add new ones after the last of them, and write lists and maps as YAML flow (`[a, b]`, `{"path": "hash"}`). `new` writes an Org note for a type whose `format` is `org` in `schema.yml`, from `.lore/templates/<Type>.org` if there is one.
+- `CONTEXT.md` stays Markdown.
 
 ## Commands
 Every command but `help` and `version` takes `--json`. Exit codes: 0 on success, 1 when a command fails or `check` finds problems, 2 for a usage error.
