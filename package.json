@@ -1,6 +1,6 @@
 {
   "name": "lore-craft",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Typed Markdown notes (specs, decisions, efforts) linked to the code they govern",
   "license": "MIT",
   "type": "module",
