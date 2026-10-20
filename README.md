@@ -39,6 +39,8 @@ Or add it as a flake input and install `lore.packages.${system}.default`.
 
 For development, `nix develop` gives you `bun` and `rg`; `bun src/main.ts <command>` runs from source.
 
+Then, in each repo: `lore init`, the [workflow skills](#workflow-skills), and for Claude Code the [hook](#install-1) that hands the agent its notes before it edits.
+
 ## Concepts
 
 **Notes** are Markdown files under the notes directory (`docs` by default), plus every `CONTEXT.md` in the repo. Frontmatter is optional:
@@ -106,7 +108,27 @@ Small work, such as a bug fix or a rename, skips the flow: no spec, no effort, j
 
 ### Claude Code hook
 
-The skills tell the agent to run `lore context` before every edit; a hook makes it happen whether or not a skill is loaded. [`hooks/claude-code.sh`](hooks/claude-code.sh) runs `lore context --session` on the file a `Read`, `Edit` or `Write` is about to touch and hands the notes to the agent. Matching `Read` matters: notes handed over at the edit arrive after the edit is made, so the agent writes the code once, then fixes it; handed over at the read, they arrive before it writes anything. Each note is shown once per session, and again only if it changes; when the conversation is compacted, the hook starts the session over so the notes come back. It needs `jq`. `test/agent/hook-trial.sh` runs real Claude Code sessions with and without it to show the difference. Copy it to `.claude/hooks/lore-context.sh` and add it to `.claude/settings.json`:
+The skills tell the agent to run `lore context` before every edit; the hook makes it happen whether or not a skill is loaded. [`hooks/claude-code.sh`](hooks/claude-code.sh) runs `lore context --session` on each file the agent reads or edits and hands it the notes that govern that file:
+
+- **Before the agent writes.** It runs on `Read` as well as `Edit` and `Write`. Notes handed over at an edit arrive after the edit is made, so the agent writes the code once and then fixes it.
+- **Once per session.** A note is shown again only if it changes, or after the conversation is compacted.
+- **Silent otherwise.** Outside a repo with `.lore/`, or when `lore` or `jq` is missing, it does nothing.
+
+`test/agent/hook-trial.sh` runs real Claude Code sessions with and without the hook to show the difference.
+
+#### Install
+
+It needs `lore` and `jq` on `PATH`.
+
+**In one project**, so everyone who clones it gets the hook:
+
+```bash
+mkdir -p .claude/hooks
+curl -fsSL https://raw.githubusercontent.com/apisandipas/lore/main/hooks/claude-code.sh -o .claude/hooks/lore-context.sh
+chmod +x .claude/hooks/lore-context.sh
+```
+
+Then add this to `.claude/settings.json`, merging it with any `hooks` already there, and commit both files:
 
 ```json
 {
@@ -120,6 +142,10 @@ The skills tell the agent to run `lore context` before every edit; a hook makes 
   }
 }
 ```
+
+**For every repo you work in**, put the script in `~/.claude/hooks/lore-context.sh` instead and add the same `hooks` to `~/.claude/settings.json`, with `~/.claude/hooks/lore-context.sh` as the command. It stays silent in repos without `.lore/`.
+
+**Check it.** Start a new Claude Code session (hooks are read at startup) and run `/hooks`: the script should be listed under `PreToolUse` and `SessionStart`. Then ask the agent to read a file that has notes; `lore context <file>` shows which notes it should have been given.
 
 <details>
 <summary><b>The flow in plain English, with a small feature</b></summary>
