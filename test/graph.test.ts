@@ -203,3 +203,57 @@ describe("plans", () => {
     expect(plans(loadGraph(memoryTree({ ".lore/schema.yml": "types:\n  Spec: {}\n" })))).toBeUndefined();
   });
 });
+
+describe("context sessions", () => {
+  const files = {
+    "CONTEXT.md": "# Root\n\nThe whole repo.\n",
+    "src/CONTEXT.md": "# Src\n\nThe code.\n",
+    "src/a.ts": "",
+    "src/b.ts": "",
+  };
+  const id = () => `test-${crypto.randomUUID()}`;
+  const titles = (out: string) => [...out.matchAll(/^(\w+)\n  \S+\.md$/gm)].map((m) => m[1]);
+
+  test("shows each note once, and nothing when every note was shown", async () => {
+    const tree = memoryTree(files);
+    const session = id();
+    expect(titles((await run(["context", "--session", session, "src/a.ts"], tree)).out)).toEqual(["Src", "Root"]);
+    expect(await run(["context", "--session", session, "src/a.ts"], tree)).toEqual({ code: 0, out: "" });
+    expect(await run(["context", "--session", session, "src/b.ts"], tree)).toEqual({ code: 0, out: "" });
+    expect(titles((await run(["context", "--session", id(), "src/b.ts"], tree)).out)).toEqual(["Src", "Root"]);
+  });
+
+  test("shows a note again when it changes", async () => {
+    const tree = memoryTree(files);
+    const session = id();
+    await run(["context", "--session", session, "src/a.ts"], tree);
+    tree.write("src/CONTEXT.md", "# Src\n\nThe code, changed.\n");
+    expect(titles((await run(["context", "--session", session, "src/a.ts"], tree)).out)).toEqual(["Src"]);
+  });
+
+  test("a note left out by the budget is still unseen", async () => {
+    const tree = memoryTree(files);
+    const session = id();
+    expect(titles((await run(["context", "--session", session, "--budget", "1", "src/a.ts"], tree)).out)).toEqual(["Src"]);
+    expect(titles((await run(["context", "--session", session, "src/a.ts"], tree)).out)).toEqual(["Root"]);
+  });
+
+  test("--forget starts the session over", async () => {
+    const tree = memoryTree(files);
+    const session = id();
+    await run(["context", "--session", session, "src/a.ts"], tree);
+    expect(await run(["context", "--session", session, "--forget"], tree)).toEqual({ code: 0, out: "" });
+    expect(titles((await run(["context", "--session", session, "src/a.ts"], tree)).out)).toEqual(["Src", "Root"]);
+    expect((await run(["context", "--forget"], tree)).code).toBe(2);
+    expect((await run(["context", "--session", session, "--forget", "src/a.ts"], tree)).code).toBe(2);
+  });
+
+  test("--json lists only the unseen notes", async () => {
+    const tree = memoryTree(files);
+    const session = id();
+    await run(["context", "--session", session, "src/b.ts"], tree);
+    tree.write("CONTEXT.md", "# Root\n\nChanged.\n");
+    const { notes } = JSON.parse((await run(["context", "--session", session, "--json", "src/a.ts"], tree)).out);
+    expect(notes.map((n: { path: string }) => n.path)).toEqual(["CONTEXT.md"]);
+  });
+});

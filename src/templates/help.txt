@@ -8,6 +8,10 @@ Commands:
   context <file>...   Notes that govern these files, most relevant first
                         --full            include note bodies
                         --budget <tokens> cap the output (default 4000)
+                        --session <id>    only notes this session has not
+                                          been shown, or that changed since;
+                                          prints nothing when there are none
+                        --forget          with --session, start it over
   show <note>         A note with its links, backlinks, citations and anchors
   list                Every note, one per line
                         --type <type>     only notes of this type

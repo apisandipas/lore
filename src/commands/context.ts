@@ -1,6 +1,7 @@
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { anchorSpecificity, SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
+import { openSession } from "../session";
 import { label, type Result } from "./shared";
 
 export type Match = { note: Note; rank: number; specificity: number; reasons: string[] };
@@ -82,10 +83,17 @@ export function repoRelative(g: Graph, cwd: string, arg: string): string | undef
   return rel.startsWith("..") || isAbsolute(rel) ? undefined : rel;
 }
 
-export function renderContext(g: Graph, files: string[], matches: Match[], opts: { full: boolean; budget: number }): string {
+// The text, and the notes that fit in the budget.
+export function renderContext(
+  g: Graph,
+  files: string[],
+  matches: Match[],
+  opts: { full: boolean; budget: number },
+): { out: string; shown: Note[] } {
   const count = matches.length === 1 ? "1 note" : `${matches.length} notes`;
   let out = `${files.join(", ")}: ${matches.length ? count : "no notes"}\n`;
   let omitted = 0;
+  const shown: Note[] = [];
   for (const m of matches) {
     const body = opts.full && m.note.body ? `\n${indent(m.note.body)}\n` : "";
     const summary = m.note.summary ? `  ${m.note.summary}\n` : "";
@@ -100,12 +108,27 @@ export function renderContext(g: Graph, files: string[], matches: Match[], opts:
       continue;
     }
     out += entry;
+    shown.push(m.note);
   }
   if (omitted) out += `\n${omitted} more ${omitted === 1 ? "note" : "notes"} omitted; raise --budget to see them\n`;
-  return out;
+  return { out, shown };
 }
 
-export function runContext(g: Graph, cwd: string, args: string[], opts: { full: boolean; json: boolean; budget: number }): Result {
+// With a session, only notes that session has not been shown, or that changed
+// since; nothing at all when there are none.
+export function runContext(
+  g: Graph,
+  cwd: string,
+  args: string[],
+  opts: { full: boolean; json: boolean; budget: number; session?: string; forget: boolean },
+): Result {
+  const session = opts.session === undefined ? undefined : openSession(g.repo.root, opts.session);
+  if (opts.forget) {
+    if (!session) return { code: 2, out: "lore context: --forget needs --session <id>\n" };
+    if (args.length) return { code: 2, out: "lore context: --forget takes no files\n" };
+    session.forget();
+    return { code: 0, out: "" };
+  }
   if (!args.length) return { code: 2, out: "lore context: name at least one file\n" };
   const files: string[] = [];
   for (const arg of args) {
@@ -113,7 +136,11 @@ export function runContext(g: Graph, cwd: string, args: string[], opts: { full: 
     if (!rel) return { code: 2, out: `lore context: ${arg} is outside the repo at ${g.repo.root}\n` };
     files.push(rel);
   }
-  const matches = contextFor(g, files);
+  let matches = contextFor(g, files);
+  if (session) {
+    matches = matches.filter((m) => session.unseen(m.note));
+    if (!matches.length) return { code: 0, out: "" };
+  }
   if (opts.json) {
     const notes = matches.map((m) => ({
       path: m.note.path,
@@ -125,9 +152,12 @@ export function runContext(g: Graph, cwd: string, args: string[], opts: { full: 
       supersedes: g.supersedes(m.note).map((o) => o.path),
       ...(opts.full ? { body: m.note.body } : {}),
     }));
+    session?.saw(matches.map((m) => m.note));
     return { code: 0, out: `${JSON.stringify({ files, notes }, null, 2)}\n` };
   }
-  return { code: 0, out: renderContext(g, files, matches, opts) };
+  const { out, shown } = renderContext(g, files, matches, opts);
+  session?.saw(shown);
+  return { code: 0, out };
 }
 
 function indent(text: string): string {
