@@ -1,10 +1,10 @@
 name: Pages
 
-# Publishes site/ as it is; the site has no build step.
+# Publishes site/ as it is, plus install.sh so the install command is short.
 on:
   push:
     branches: [main]
-    paths: [site/**, .github/workflows/pages.yml]
+    paths: [site/**, install.sh, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - run: cp install.sh site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

@@ -1,0 +1,100 @@
+name: Release
+
+# On a v* tag: build a standalone lore for each platform, run it on Linux
+# and macOS with only ripgrep installed, attach the archives to the GitHub
+# release, then install it with install.sh as a user would. Run by hand, it
+# stops after the smoke tests and keeps the archives as workflow artifacts.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Compile
+        run: |
+          mkdir -p dist
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64; do
+            mkdir -p "build/$target"
+            exe=lore; case $target in windows-*) exe=lore.exe ;; esac
+            bun build --compile --minify --target="bun-$target" src/main.ts --outfile "build/$target/$exe"
+            case $target in
+              windows-*) (cd "build/$target" && zip -q "../../dist/lore-$target.zip" "$exe") ;;
+              *) tar -C "build/$target" -czf "dist/lore-$target.tar.gz" "$exe" ;;
+            esac
+          done
+          (cd dist && sha256sum lore-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  smoke:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: macos-latest, target: darwin-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - name: Install ripgrep
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then brew install ripgrep; else sudo apt-get install -y ripgrep; fi
+      - name: Run lore without Bun
+        run: |
+          tar -xzf "lore-${{ matrix.target }}.tar.gz"
+          if command -v bun; then echo "bun is on PATH; this test needs it absent"; exit 1; fi
+          mkdir repo && cd repo && git init -q
+          ../lore --version
+          ../lore init
+          ../lore new Spec "Due dates"
+          ../lore new Effort "Due dates" --link specs=spec/due-dates
+          ../lore check
+
+  publish:
+    needs: smoke
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Attach to the release
+        run: |
+          if ! gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            pre=""; case $TAG in *-*) pre=--prerelease ;; esac
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "lore ${TAG#v}" --generate-notes $pre
+          fi
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber dist/*
+
+  install:
+    needs: publish
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install with install.sh
+        env:
+          LORE_VERSION: ${{ github.ref_name }}
+        run: |
+          sh install.sh
+          "$HOME/.local/bin/lore" --version | grep -qx "${LORE_VERSION#v}"

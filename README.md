@@ -29,7 +29,15 @@ No index, no database, no embeddings, no network. Every command reads the workin
 
 ## Install
 
-lore is a Nix flake. It needs [Bun](https://bun.sh) and [ripgrep](https://github.com/BurntSushi/ripgrep) at runtime; the package brings both.
+On Linux or macOS, install the standalone binary (no Bun or Node needed) into `~/.local/bin`:
+
+```bash
+curl -fsSL https://apisandipas.github.io/lore/install.sh | sh
+```
+
+lore also needs [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`): `brew install ripgrep`, `apt install ripgrep`, or your package manager's. `LORE_VERSION=v0.1.0-alpha.4` picks a release and `LORE_INSTALL_DIR` the directory. Windows and the other builds are on the [releases page](https://github.com/apisandipas/lore/releases); run the script again to upgrade.
+
+With Nix, the flake brings Bun and ripgrep itself:
 
 ```bash
 nix run github:apisandipas/lore -- help

@@ -52,7 +52,13 @@
   <p class="lede">This guide sets up lore in a small app, writes the notes it already needs, and takes one feature, due dates on tasks, through the whole flow. Every block of output below is what lore printed.</p>
 
   <h2 id="install">Install</h2>
-  <p>lore is a Nix flake. It runs on <a href="https://bun.sh">Bun</a> and uses <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a> to find citations; the package brings both.</p>
+  <p>On Linux or macOS, the install script puts a standalone <code>lore</code> in <code>~/.local/bin</code>. It needs no Bun or Node, and checks the download against the release’s checksums.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">Linux and macOS</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">curl -fsSL https://apisandipas.github.io/lore/install.sh | sh</span></code></pre>
+  </div>
+  <p>lore finds citations with <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a>, so install that too: <code>brew install ripgrep</code> or <code>apt install ripgrep</code>. Run the script again to upgrade; <code>LORE_VERSION</code> picks a release. Windows builds are on the <a href="https://github.com/apisandipas/lore/releases">releases page</a>.</p>
+  <p>With Nix, the flake brings Bun and ripgrep itself:</p>
   <div class="term">
     <div class="term-bar"><span class="where">try it without installing</span><button class="copy" type="button">Copy</button></div>
 <pre><code><span class="cmd">nix run github:apisandipas/lore -- help</span></code></pre>
