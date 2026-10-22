@@ -41,6 +41,7 @@
 (require 'eldoc)
 (require 'flymake)
 (require 'subr-x)
+(require 'seq)
 (require 'xref)
 
 (defgroup lore nil
@@ -148,9 +149,10 @@ the process."
         (puthash root (cons (float-time) notes) lore--names-cache)
         notes))))
 
-(defun lore--stem (path)
-  "The name the note at PATH is linked by: its file name, no extension."
-  (file-name-sans-extension (file-name-nondirectory path)))
+(defun lore--name (note)
+  "The name NOTE, from `lore list', is linked by: type/stem, as lore writes it."
+  (or (alist-get 'name note)
+      (file-name-sans-extension (file-name-nondirectory (alist-get 'path note)))))
 
 (defun lore--find (ref &optional root)
   "The note REF names in ROOT, from `lore show', or nil when none."
@@ -340,7 +342,7 @@ such as eglot or etags."
 
 (cl-defmethod xref-backend-identifier-completion-table ((_backend (eql lore)))
   "Every note's name."
-  (mapcar (lambda (n) (lore--stem (alist-get 'path n))) (lore--notes)))
+  (mapcar #'lore--name (lore--notes)))
 
 ;;;; eldoc: the summary of the note at point
 
@@ -358,6 +360,26 @@ such as eglot or etags."
 
 ;;;; Completion after [[ and lore:
 
+(defun lore--name-table (names)
+  "A completion table of note NAMES that also matches by file name.
+Typing \"bil\" offers \"spec/billing\", and completing inserts the
+qualified name lore writes."
+  (lambda (string pred action)
+    (let ((hits (seq-filter (lambda (n) (or (string-prefix-p string n t)
+                                            (string-prefix-p string (file-name-nondirectory n) t)))
+                            names)))
+      (pcase action
+        ('metadata '(metadata (category . lore-note)))
+        ('lambda (and (member string names) t))
+        ('t (all-completions "" hits pred))
+        ('nil (let ((hits (if pred (seq-filter pred hits) hits)))
+                (cond ((null hits) nil)
+                      ((and (null (cdr hits)) (equal (car hits) string)) t)
+                      ((null (cdr hits)) (car hits))
+                      (t (let ((common (try-completion string hits)))
+                           (if (stringp common) common string))))))
+        (_ nil)))))
+
 (defun lore-completion-at-point ()
   "Complete a note name after [[ or lore:."
   (when-let* ((root (lore-root))
@@ -366,8 +388,8 @@ such as eglot or etags."
     (let ((start (match-beginning 1)) (end (match-end 1))
           (titles (make-hash-table :test #'equal)))
       (dolist (n (lore--notes root))
-        (puthash (lore--stem (alist-get 'path n)) (alist-get 'title n) titles))
-      (list start end (hash-table-keys titles)
+        (puthash (lore--name n) (alist-get 'title n) titles))
+      (list start end (lore--name-table (hash-table-keys titles))
             :exclusive 'no
             :annotation-function
             (lambda (name) (when-let* ((title (gethash name titles)))
@@ -402,11 +424,14 @@ lore reads the disk, so this reflects the file as last saved."
 (defun lore--read-note (prompt)
   "Read a note name with PROMPT, offering the one at point first."
   (let* ((ref (lore--ref-at-point))
-         (here (and buffer-file-name (lore-root)
-                    (lore--stem buffer-file-name)))
-         (names (mapcar (lambda (n) (lore--stem (alist-get 'path n))) (lore--notes))))
-    (completing-read prompt names nil nil nil nil
-                     (or ref (and (member here names) here)))))
+         (root (lore-root))
+         (notes (and root (lore--notes root)))
+         (here (and buffer-file-name root
+                    (seq-find (lambda (n) (equal (alist-get 'path n)
+                                                 (lore--relative buffer-file-name root)))
+                              notes))))
+    (completing-read prompt (lore--name-table (mapcar #'lore--name notes)) nil nil nil nil
+                     (or ref (and here (lore--name here))))))
 
 (defun lore--text-buffer (name text root)
   "Show TEXT from lore in buffer NAME, with repo paths as buttons."

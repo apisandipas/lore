@@ -17,6 +17,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   if (opts.json) {
     const data = {
       path: note.path,
+      name: note.name,
       title: note.title,
       type: note.type ?? null,
       status: note.status ?? null,
@@ -26,7 +27,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
       linksIn,
       citedBy,
       anchors,
-      history: history.map((n) => ({ path: n.path, status: n.status ?? null })),
+      history: history.map((n) => ({ path: n.path, name: n.name, status: n.status ?? null })),
       checklist: note.checklist,
     };
     return { code: 0, out: `${JSON.stringify(data, null, 2)}\n` };

@@ -43,6 +43,7 @@ describe("schema", () => {
     const [note] = JSON.parse((await lore("list", "--type", "decision", "--summaries", "--json")).out);
     expect(note).toEqual({
       path: "docs/decisions/0001-hard-expiry.md",
+      name: "decision/0001-hard-expiry",
       title: "Sessions expire after 15 minutes",
       type: "Decision",
       status: "superseded",
@@ -71,8 +72,8 @@ describe("superseding", () => {
   test("show walks the chain from either end", async () => {
     const history = (await lore("show", "0001", "--json")).out;
     expect(JSON.parse(history).history).toEqual([
-      { path: "docs/decisions/0002-rotating-tokens.md", status: "accepted" },
-      { path: "docs/decisions/0001-hard-expiry.md", status: "superseded" },
+      { path: "docs/decisions/0002-rotating-tokens.md", name: "decision/0002-rotating-tokens", status: "accepted" },
+      { path: "docs/decisions/0001-hard-expiry.md", name: "decision/0001-hard-expiry", status: "superseded" },
     ]);
   });
 

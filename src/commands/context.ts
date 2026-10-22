@@ -144,6 +144,7 @@ export function runContext(
   if (opts.json) {
     const notes = matches.map((m) => ({
       path: m.note.path,
+      name: m.note.name,
       title: m.note.title,
       type: m.note.type ?? null,
       status: m.note.status ?? null,

@@ -6,6 +6,7 @@ export function runList(g: Graph, opts: { type?: string; summaries: boolean; jso
   if (opts.json) {
     const data = notes.map((n) => ({
       path: n.path,
+      name: n.name,
       title: n.title,
       type: n.type ?? null,
       status: n.status ?? null,

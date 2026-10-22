@@ -110,10 +110,11 @@
       (insert "Also [[bil")
       (pcase-let ((`(,start ,end ,table . ,props) (lore-completion-at-point)))
         (should (equal (buffer-substring start end) "bil"))
-        (should (member "billing" (all-completions "bil" table)))
-        (should (equal (funcall (plist-get props :annotation-function) "billing") "  Billing")))
+        (should (equal (all-completions "bil" table) '("spec/billing")))
+        (should (equal (try-completion "bil" table) "spec/billing"))
+        (should (equal (funcall (plist-get props :annotation-function) "spec/billing") "  Billing")))
       (insert "\nlore:00")
-      (should (member "0001-money-in-cents"
+      (should (member "decision/0001-money-in-cents"
                       (all-completions "00" (nth 2 (lore-completion-at-point)))))
       (insert " plain")
       (should-not (lore-completion-at-point)))))
