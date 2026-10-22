@@ -41,7 +41,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   if (history.length > 1) {
     section(
       "History (newest first)",
-      history.map((n) => `${n === note ? "▸ " : "  "}${n.stem}  (${n.status ?? "no status"})`),
+      history.map((n) => `${n === note ? "▸ " : "  "}${n.name}  (${n.status ?? "no status"})`),
     );
   }
   section(

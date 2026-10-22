@@ -14,8 +14,8 @@ export type Graph = {
   byPath: Map<string, Note>;
   citations: Citation[];
   isNoteFile(file: string): boolean;
-  // A link target or a name from the command line: a path, a filename, an
-  // alias, or a number prefix. An exact path wins over an ambiguous name.
+  // A link target or a name from the command line: a path, a qualified name
+  // (spec/auth, decision/0002), a filename, an alias, or a number prefix. An exact path wins over an ambiguous name.
   resolve(target: string): Resolution;
   // resolve, with an error saying why nothing or too much matched.
   find(ref: string): { note?: Note; error?: string };
@@ -63,6 +63,7 @@ export function loadGraph(tree: Tree): Graph {
       // A note in a type's directory has that type unless it names another.
       note.def = note.type ? schema.find(note.type) : typeForPath(schema, f);
       if (note.def) note.type = note.def.name;
+      if (note.type) note.name = qualify(note.type, note.stem);
       const section = note.def?.summary;
       if (section && note.frontmatter.summary === undefined) note.summary = sectionSummary(note.path, note.body, section) ?? note.summary;
       return note;
@@ -79,10 +80,11 @@ export function loadGraph(tree: Tree): Graph {
         keyOf(n.path) === t ||
         keyOf(relToNotes(n.path)) === t ||
         n.stem.toLowerCase() === t ||
+        n.name.toLowerCase() === t ||
         n.aliases.some((a) => keyOf(a) === t),
     );
     // An id alone ("0007", "D-12") names the note whose filename starts with it.
-    if (!candidates.length && /\d$/.test(t)) candidates = notes.filter((n) => n.stem.toLowerCase().startsWith(`${t}-`));
+    if (!candidates.length && /\d$/.test(t)) candidates = notes.filter((n) => n.stem.toLowerCase().startsWith(`${t}-`) || n.name.toLowerCase().startsWith(`${t}-`));
     const exact = candidates.length > 1 ? byPath.get(target.trim().replace(/^\.\//, "")) : undefined;
     if (exact) return { note: exact, candidates: [exact] };
     return { note: candidates.length === 1 ? candidates[0] : undefined, candidates };
@@ -92,7 +94,7 @@ export function loadGraph(tree: Tree): Graph {
     const r = resolve(ref);
     if (r.note) return { note: r.note };
     if (r.candidates.length > 1) {
-      return { error: `'${ref}' matches ${r.candidates.length} notes:\n${r.candidates.map((n) => `  ${n.path}`).join("\n")}` };
+      return { error: `'${ref}' matches ${r.candidates.length} notes:\n${r.candidates.map((n) => (n.name === n.stem ? `  ${n.path}` : `  ${n.name}  ${n.path}`)).join("\n")}` };
     }
     return { error: `no note matches '${ref}'` };
   };
@@ -166,6 +168,18 @@ export function loadGraph(tree: Tree): Graph {
   };
 
   return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchorFiles, anchorMatches, supersedes, supersededBy, current, isA };
+}
+
+// The names of several notes, for saying which ones a name could mean; paths
+// where names do not tell them apart, as for two CONTEXT.md files.
+export function names(notes: Note[]): string {
+  const all = notes.map((n) => (notes.some((o) => o !== n && o.name === n.name) ? n.path : n.name));
+  return all.length > 1 ? `${all.slice(0, -1).join(", ")} and ${all.at(-1)}` : (all[0] ?? "");
+}
+
+// A typed note's name: its type, lowercased, then its stem, as in spec/due-dates.
+export function qualify(type: string, stem: string): string {
+  return `${type.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${stem}`;
 }
 
 // How narrowly a path anchor targets code: the literal prefix before any glob.

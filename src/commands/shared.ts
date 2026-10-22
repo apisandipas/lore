@@ -9,8 +9,8 @@ export function label(note: Note): string {
   return tags ? `${note.title}  (${tags})` : note.title;
 }
 
-// A name from the command line as a link value: [[stem]] when it names one
+// A name from the command line as a link value: [[type/stem]] when it names one
 // note, otherwise as given, for fieldProblems to report.
 export function linkTo(g: Graph, ref: string): string {
-  return link(g.resolve(ref).note?.stem ?? ref);
+  return link(g.resolve(ref).note?.name ?? ref);
 }

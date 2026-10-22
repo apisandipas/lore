@@ -1,4 +1,4 @@
-import type { Graph } from "./graph";
+import { names, type Graph } from "./graph";
 import { linkTargets } from "./parse";
 import type { TypeDef } from "./schema";
 
@@ -31,10 +31,10 @@ export function fieldProblems(g: Graph, def: TypeDef, field: string, value: unkn
       for (const t of targets) {
         const r = g.resolve(t);
         if (!r.note) {
-          const why = r.candidates.length > 1 ? `matches ${r.candidates.length} notes` : "matches no note";
+          const why = r.candidates.length > 1 ? `matches ${names(r.candidates)}` : "matches no note";
           problems.push(`'${field}' links to '${t}', which ${why}`);
         } else if (!g.isA(r.note, spec.link)) {
-          problems.push(`'${field}' links to ${r.note.stem}, ${a(r.note.type ?? "untyped note")}; expected ${a(spec.link)}`);
+          problems.push(`'${field}' links to ${r.note.name}, ${a(r.note.type ?? "untyped note")}; expected ${a(spec.link)}`);
         }
       }
     }

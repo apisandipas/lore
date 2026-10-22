@@ -132,7 +132,7 @@ describe("check", () => {
     expect(code).toBe(1);
     expect(out).toContain("docs/decisions/0009-broken.md:4: anchor 'gone/**' matches no files");
     expect(out).toContain("docs/decisions/0009-broken.md:8: link 'nowhere' matches no note");
-    expect(out).toContain("docs/decisions/0009-broken.md:8: link 'CONTEXT' is ambiguous: it matches 2 notes");
+    expect(out).toContain("docs/decisions/0009-broken.md:8: link 'CONTEXT' is ambiguous: it matches CONTEXT.md and pkg/auth/CONTEXT.md");
     expect(out).toContain("pkg/auth/session.ts:3: citation 'lore:missing-note' matches no note");
     expect(out).toContain("6 notes, 2 citations: 4 problems");
   });

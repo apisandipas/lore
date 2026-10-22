@@ -6,6 +6,8 @@ export type Link = { target: string; line: number; field?: string };
 export type Note = {
   path: string;
   stem: string;
+  // What lore calls the note: `type/stem` once the graph knows its type, else the stem.
+  name: string;
   frontmatter: Record<string, unknown>;
   frontmatterError?: string;
   fieldLines: Record<string, number>;
@@ -180,6 +182,7 @@ export function parseNote(path: string, text: string): Note {
   return {
     path,
     stem,
+    name: stem,
     frontmatter,
     frontmatterError,
     fieldLines,

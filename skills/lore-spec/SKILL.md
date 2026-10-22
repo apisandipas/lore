@@ -18,7 +18,7 @@ Read `.lore/WORKFLOW.md` first if it exists; the project's process wins over thi
    - The first paragraph under the title is the summary that `lore context` and `lore list --summaries` show. Make it one sentence that stands alone.
    - Under `## Behaviour`, write statements someone could test: "A reset link expires after one hour", not "links should be secure".
    - Under `## Out of scope`, name what a reader might expect and will not get.
-   - Link related notes with `[[name]]`. If the spec governs code that already exists, add `anchors:` to its frontmatter (a path, a glob, or `symbol:Name`).
+   - Link related notes by name, type and filename: `[[decision/0004]]`, `[[spec/password-reset]]`. If the spec governs code that already exists, add `anchors:` to its frontmatter (a path, a glob, or `symbol:Name`).
    - A choice between alternatives that needs its reasons kept belongs in a decision; use `lore-decide` and link it.
 5. **Check.** Run `lore check` and fix anything it reports about this spec.
 6. **Accept only with the user.** Show the spec and ask whether it is right. Run `lore set <spec> status=accepted` only when the user says so. Until then it stays `draft`.

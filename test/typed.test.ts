@@ -28,10 +28,10 @@ describe("schema", () => {
     expect(out).toBe(
       [
         "docs/decisions/0003-bad.md:2: 'status' is 'maybe'; expected one of proposed, accepted, superseded",
-        "docs/decisions/0003-bad.md:3: 'supersedes' links to auth, a Spec; expected a Decision",
-        "docs/decisions/0003-bad.md:3: supersedes auth, but auth is accepted",
+        "docs/decisions/0003-bad.md:3: 'supersedes' links to spec/auth, a Spec; expected a Decision",
+        "docs/decisions/0003-bad.md:3: supersedes spec/auth, but spec/auth is accepted",
         "docs/efforts/stray.md:2: type 'Chore' is not in .lore/schema.yml",
-        "src/session.ts:1: cites superseded '0001-hard-expiry'; cite lore:0002-rotating-tokens instead",
+        "src/session.ts:1: cites superseded 'decision/0001-hard-expiry'; cite lore:decision/0002-rotating-tokens instead",
         "",
         "6 notes, 1 citation: 5 problems",
         "",
@@ -60,9 +60,9 @@ describe("superseding", () => {
         "",
         "Rotating refresh tokens  (Decision, accepted)",
         "  docs/decisions/0002-rotating-tokens.md",
-        "  matched: anchor src/**; cited at session.ts:1 (via superseded 0001-hard-expiry)",
+        "  matched: anchor src/**; cited at session.ts:1 (via superseded decision/0001-hard-expiry)",
         "  Refresh tokens rotate on every use; access tokens last 15 minutes.",
-        "  supersedes 0001-hard-expiry: Every session hard-expires after 15 minutes.",
+        "  supersedes decision/0001-hard-expiry: Every session hard-expires after 15 minutes.",
         "",
       ].join("\n"),
     );
@@ -84,19 +84,19 @@ describe("superseding", () => {
       "created docs/decisions/0004-sliding-sessions.md\nmarked docs/decisions/0002-rotating-tokens.md superseded and moved its anchors\n",
     );
     expect(c.read("docs/decisions/0004-sliding-sessions.md")).toBe(
-      '---\ntype: Decision\nstatus: proposed\nsupersedes: ["[[0002-rotating-tokens]]"]\nanchors: [src/**]\n---\n# Sliding sessions\n\n## Context\n\n## Decision\n\n## Consequences\n',
+      '---\ntype: Decision\nstatus: proposed\nsupersedes: ["[[decision/0002-rotating-tokens]]"]\nanchors: [src/**]\n---\n# Sliding sessions\n\n## Context\n\n## Decision\n\n## Consequences\n',
     );
     expect(c.read("docs/decisions/0002-rotating-tokens.md")).toStartWith(
       '---\nstatus: superseded\nsupersedes: ["[[0001]]"]\n---\n',
     );
     // The citation of 0001 now resolves through two hops.
-    expect((await c.lore("check")).out).toContain("cite lore:0004-sliding-sessions instead");
+    expect((await c.lore("check")).out).toContain("cite lore:decision/0004-sliding-sessions instead");
   });
 
   test("new refuses to supersede a note twice", async () => {
     const { code, out } = await lore("new", "Decision", "Again", "--supersedes", "0001");
     expect(code).toBe(1);
-    expect(out).toContain("already superseded by 0002-rotating-tokens");
+    expect(out).toContain("already superseded by decision/0002-rotating-tokens");
   });
 
   test("new rejects unknown types", async () => {
@@ -115,10 +115,10 @@ describe("new --link", () => {
     const cases: [string[], string][] = [
       [["Effort", "X", "--link", "status=auth"], "'status' is not a link field of Effort (link fields: specs, parent)"],
       [["Effort", "X", "--link", "specs=nope"], "--link 'specs' links to 'nope', which matches no note"],
-      [["Effort", "X", "--link", "specs=0002"], "--link 'specs' links to 0002-rotating-tokens, a Decision; expected a Spec"],
-      [["Effort", "X", "--link", "parent=auth"], "--link 'parent' links to auth, a Spec; expected an Effort"],
+      [["Effort", "X", "--link", "specs=0002"], "--link 'specs' links to decision/0002-rotating-tokens, a Decision; expected a Spec"],
+      [["Effort", "X", "--link", "parent=auth"], "--link 'parent' links to spec/auth, a Spec; expected an Effort"],
       [["Effort", "X", "--link", "parent=reset", "--link", "parent=auth"], "--link 'parent' takes one value, not a list"],
-      [["Effort", "X", "--link", "specs=auth", "--link", "parent=stray"], "--link 'parent' links to stray, a Chore; expected an Effort"],
+      [["Effort", "X", "--link", "specs=auth", "--link", "parent=stray"], "--link 'parent' links to chore/stray, a Chore; expected an Effort"],
       [["Decision", "X", "--link", "supersedes=0002"], "--link cannot set supersedes; use --supersedes <note>"],
     ];
     for (const [args, message] of cases) {
@@ -143,12 +143,12 @@ describe("new --link writes", () => {
     expect(out).toBe("created docs/efforts/sliding-sessions.md\n");
     expect(code).toBe(0);
     expect(c.read("docs/efforts/sliding-sessions.md")).toBe(
-      '---\ntype: Effort\nstatus: planned\nspecs: ["[[auth]]"]\nparent: "[[reset]]"\n---\n# Sliding sessions\n',
+      '---\ntype: Effort\nstatus: planned\nspecs: ["[[spec/auth]]"]\nparent: "[[effort/reset]]"\n---\n# Sliding sessions\n',
     );
     expect((await c.lore("check")).out).not.toContain("sliding-sessions");
 
     const json = JSON.parse((await c.lore("new", "Effort", "Again", "--link", "specs=auth", "--json")).out);
-    expect(json).toEqual({ path: "docs/efforts/again.md", superseded: [], links: { specs: ["docs/specs/auth.md"] } });
+    expect(json).toEqual({ path: "docs/efforts/again.md", superseded: [], links: { specs: ["docs/specs/auth.md"] }, ambiguous: [] });
   });
 });
 
@@ -167,11 +167,11 @@ describe("set refuses", () => {
       [["reset", "status=finished"], "'status' is 'finished'; expected one of planned, active, done"],
       [["reset", "type=Chore"], "type 'Chore' is not in .lore/schema.yml"],
       [["reset", "specs=nope"], "'specs' links to 'nope', which matches no note"],
-      [["reset", "specs=0002"], "'specs' links to 0002-rotating-tokens, a Decision; expected a Spec"],
+      [["reset", "specs=0002"], "'specs' links to decision/0002-rotating-tokens, a Decision; expected a Spec"],
       [["reset", "status=active", "status=done"], "'status' takes one value, not a list"],
       [["reset", "title+=More"], "'title' takes one value, not a list"],
-      [["0002", "supersedes=0001"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
-      [["0002", "status=superseded"], "supersede with lore new <type> <title> --supersedes 0002-rotating-tokens"],
+      [["0002", "supersedes=0001"], "supersede with lore new <type> <title> --supersedes decision/0002-rotating-tokens"],
+      [["0002", "status=superseded"], "supersede with lore new <type> <title> --supersedes decision/0002-rotating-tokens"],
       // One bad assignment stops the good ones too.
       [["reset", "status=done", "specs=nope"], "'specs' links to 'nope', which matches no note"],
     ];
@@ -197,13 +197,13 @@ describe("set writes", () => {
 
     // The same spec under another name is not added twice.
     await c.lore("set", "reset", "specs+=docs/specs/auth.md", "specs+=billing");
-    expect(frontmatter()).toContain('specs: ["[[auth]]", "[[billing]]"]\n');
+    expect(frontmatter()).toContain('specs: ["[[auth]]", "[[spec/billing]]"]\n');
     await c.lore("set", "reset", "specs=billing", "specs=auth");
-    expect(frontmatter()).toContain('specs: ["[[billing]]", "[[auth]]"]\n');
+    expect(frontmatter()).toContain('specs: ["[[spec/billing]]", "[[spec/auth]]"]\n');
 
     await c.lore("set", "reset", "anchors+=src/**", "aliases=pw-reset", "title=Password reset, again");
     expect(frontmatter()).toBe(
-      'type: Effort\nstatus: done\nspecs: ["[[billing]]", "[[auth]]"]\nanchors: [src/**]\naliases: [pw-reset]\ntitle: Password reset, again\n',
+      'type: Effort\nstatus: done\nspecs: ["[[spec/billing]]", "[[spec/auth]]"]\nanchors: [src/**]\naliases: [pw-reset]\ntitle: Password reset, again\n',
     );
     expect(c.read("docs/efforts/reset.md").split("---\n")[2]).toBe(body);
     expect((await c.lore("check")).out).not.toContain("reset.md");
@@ -254,7 +254,7 @@ describe("freeze", () => {
 
     writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
     expect((await c.lore("check")).out).toContain(
-      "docs/efforts/reset.md:5: docs/specs/auth.md changed since this was frozen; review the plan, then run lore freeze reset",
+      "docs/efforts/reset.md:5: docs/specs/auth.md changed since this was frozen; review the plan, then run lore freeze effort/reset",
     );
 
     await c.lore("freeze", "reset");
@@ -430,5 +430,42 @@ describe("init", () => {
     await run(["init"], dir);
     await run(["new", "Spec", "Login"], dir);
     expect((await run(["next"], dir)).out).toContain("next: lore-spec docs/specs/login.md");
+  });
+});
+
+describe("qualified names", () => {
+  test("type/stem and type/id name a note, in any case", async () => {
+    for (const ref of ["spec/auth", "Spec/Auth", "decision/0002", "decision/0002-rotating-tokens"]) {
+      const { code, out } = await lore("show", ref, "--json");
+      expect(code).toBe(0);
+      expect(JSON.parse(out).path).toBe(ref.toLowerCase().startsWith("spec") ? "docs/specs/auth.md" : "docs/decisions/0002-rotating-tokens.md");
+    }
+    expect((await lore("show", "effort/auth")).out).toBe("lore show: no note matches 'effort/auth'\n");
+  });
+
+  test("a note of another type with a taken stem names the links it makes ambiguous", async () => {
+    const c = copy();
+    const { code, out } = await c.lore("new", "Effort", "Auth", "--link", "specs=auth");
+    expect(code).toBe(0);
+    expect(out).toBe(
+      [
+        "created docs/efforts/auth.md",
+        "'auth' now names two notes; these meant spec/auth, so name it that way:",
+        "  docs/decisions/0003-bad.md:3: 'auth' → spec/auth",
+        "  docs/efforts/reset.md:4: 'auth' → spec/auth",
+        "",
+      ].join("\n"),
+    );
+    // Its own link is qualified, so only the bare one is ambiguous.
+    expect(c.read("docs/efforts/auth.md")).toContain('specs: ["[[spec/auth]]"]');
+    const check = (await c.lore("check")).out;
+    expect(check).toContain("docs/efforts/reset.md:4: 'specs' links to 'auth', which matches effort/auth and spec/auth");
+    expect(check).not.toContain("docs/efforts/auth.md:");
+    expect((await c.lore("show", "auth")).out).toBe(
+      "lore show: 'auth' matches 2 notes:\n  effort/auth  docs/efforts/auth.md\n  spec/auth  docs/specs/auth.md\n",
+    );
+
+    await c.lore("set", "reset", "specs=spec/auth");
+    expect((await c.lore("check")).out).not.toContain("reset.md:4");
   });
 });

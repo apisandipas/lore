@@ -1,4 +1,4 @@
-import { SUPERSEDED, type Graph } from "../graph";
+import { names, SUPERSEDED, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { drift } from "../plan";
 import { fieldProblems } from "../validate";
@@ -8,8 +8,8 @@ export type Problem = { file: string; line: number; message: string };
 
 export function checkGraph(g: Graph): Problem[] {
   const problems: Problem[] = [];
-  const target = (t: string, candidates: number) =>
-    candidates > 1 ? `'${t}' is ambiguous: it matches ${candidates} notes` : `'${t}' matches no note`;
+  const target = (t: string, candidates: Note[]) =>
+    candidates.length > 1 ? `'${t}' is ambiguous: it matches ${names(candidates)}` : `'${t}' matches no note`;
 
   for (const note of g.notes) {
     const at = (line: number, message: string) => problems.push({ file: note.path, line, message });
@@ -18,7 +18,7 @@ export function checkGraph(g: Graph): Problem[] {
       // Links in the type's link fields are checked with the rest of the field.
       if (link.field && note.def?.fields[link.field]?.link) continue;
       const r = g.resolve(link.target);
-      if (!r.note) at(link.line, `${link.field ? `${link.field} link` : "link"} ${target(link.target, r.candidates.length)}`);
+      if (!r.note) at(link.line, `${link.field ? `${link.field} link` : "link"} ${target(link.target, r.candidates)}`);
     }
     for (const anchor of note.anchors) {
       if (!g.anchorFiles(anchor).length) at(fieldLine(note, "anchors"), `anchor '${anchor}' matches no files`);
@@ -31,11 +31,11 @@ export function checkGraph(g: Graph): Problem[] {
   for (const c of g.citations) {
     const r = g.resolve(c.target);
     if (!r.note) {
-      problems.push({ file: c.file, line: c.line, message: `citation ${target(`lore:${c.target}`, r.candidates.length)}` });
+      problems.push({ file: c.file, line: c.line, message: `citation ${target(`lore:${c.target}`, r.candidates)}` });
     } else if (r.note.status === SUPERSEDED) {
       const now = g.current(r.note);
-      const advice = now === r.note ? "" : `; cite lore:${now.stem} instead`;
-      problems.push({ file: c.file, line: c.line, message: `cites superseded '${r.note.stem}'${advice}` });
+      const advice = now === r.note ? "" : `; cite lore:${now.name} instead`;
+      problems.push({ file: c.file, line: c.line, message: `cites superseded '${r.note.name}'${advice}` });
     }
   }
 
@@ -62,20 +62,20 @@ function checkSuperseding(g: Graph, note: Note, at: At) {
     const successors = g.supersededBy(note);
     if (!successors.length) at(fieldLine(note, "status"), "superseded, but no note supersedes it");
     if (note.anchors.length) {
-      const to = successors[0] ? ` to ${g.current(note).stem}` : "";
+      const to = successors[0] ? ` to ${g.current(note).name}` : "";
       at(fieldLine(note, "anchors"), `superseded note still anchors code; move its anchors${to}`);
     }
   }
   for (const old of g.supersedes(note)) {
     if (old.status !== SUPERSEDED) {
-      at(fieldLine(note, "supersedes"), `supersedes ${old.stem}, but ${old.stem} is ${old.status ?? "missing a status"}`);
+      at(fieldLine(note, "supersedes"), `supersedes ${old.name}, but ${old.name} is ${old.status ?? "missing a status"}`);
     }
   }
 }
 
 function checkFrozen(g: Graph, note: Note, at: At) {
   for (const { path, gone } of drift(g, note)) {
-    const message = gone ? `frozen ${path} no longer exists` : `${path} changed since this was frozen; review the plan, then run lore freeze ${note.stem}`;
+    const message = gone ? `frozen ${path} no longer exists` : `${path} changed since this was frozen; review the plan, then run lore freeze ${note.name}`;
     at(fieldLine(note, "frozen"), message);
   }
 }
