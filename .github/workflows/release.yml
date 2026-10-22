@@ -2,11 +2,14 @@ name: Release
 
 # On a v* tag: build a standalone lore for each platform, run it on Linux
 # and macOS with only ripgrep installed, attach the archives to the GitHub
-# release, then install it with install.sh as a user would. Run by hand, it
-# stops after the smoke tests and keeps the archives as workflow artifacts.
+# release, then install it with install.sh as a user would. On develop, or
+# run by hand, it stops after the smoke tests, so a change to this file or
+# to install.sh is tried before a release depends on it.
 on:
   push:
     tags: ["v*"]
+    branches: [develop]
+    paths: [.github/workflows/release.yml, install.sh]
   workflow_dispatch:
 
 permissions:
