@@ -1,6 +1,6 @@
 # lore
 
-Typed project notes linked to the code they govern.
+Typed project notes linked to the code they govern. Documentation, with examples: **[apisandipas.github.io/lore](https://apisandipas.github.io/lore/)**.
 
 Before an agent (or a person) edits a file, it should know which specs, decisions and module notes apply to it. `lore` answers that from plain Markdown in your repo:
 
