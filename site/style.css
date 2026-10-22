@@ -439,7 +439,9 @@ h3.cmd-head { font-size: 1.15rem; }
 .page.home > :not(.toc):not(.wide) { grid-column: 1; }
 .page.home > .wide { grid-column: 1 / 3; }
 .page.home .sidenote { grid-column: 2 !important; }
-.page.home .annotated { grid-template-columns: minmax(0, 1fr) 21rem; column-gap: 2rem; }
+@media (min-width: 901px) { .page.home .annotated { grid-template-columns: minmax(0, 1fr) 21rem; column-gap: 2rem; } }
+/* Cards in their own order, the code centred beside them. */
+.annotated.centered { align-items: center; }
 
 @media (max-width: 1240px) {
   .page { grid-template-columns: minmax(0, var(--measure)) var(--margin); max-width: calc(var(--measure) + var(--margin) + var(--gap) + 3rem); }

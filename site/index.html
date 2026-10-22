@@ -45,7 +45,7 @@
     </div>
   </section>
 
-  <figure class="annotated wide">
+  <figure class="annotated centered wide">
     <div class="term file">
       <div class="term-bar"><span class="where"><span class="src" data-to="n-auth n-ctx">pkg/auth/</span>session.ts</span></div>
       <pre class="lines"><code><span class="l"><span class="k">import</span> { sign, verify } <span class="k">from</span> <span class="s">"./jwt"</span>;</span>
@@ -61,23 +61,23 @@
 <span class="l">}</span></code></pre>
     </div>
     <div class="notes">
-      <article class="note-card" id="n-0002">
-        <div class="meta"><span><span class="marker">1</span>Decision 0002</span><span class="stamp accepted">accepted</span></div>
-        <h4>Rotating refresh tokens</h4>
-        <p>Refresh tokens rotate on every use; access tokens last 15 minutes.</p>
-        <div class="why">cited at session.ts:4 · supersedes <s>0001</s></div>
-      </article>
       <article class="note-card" id="n-auth">
-        <div class="meta"><span><span class="marker">2</span>Spec</span><span class="stamp accepted">accepted</span></div>
+        <div class="meta"><span><span class="marker">1</span>Spec</span><span class="stamp accepted">accepted</span></div>
         <h4>Auth</h4>
         <p>Who can sign in, how, and for how long.</p>
         <div class="why">anchor pkg/auth/**</div>
       </article>
       <article class="note-card" id="n-ctx">
-        <div class="meta"><span><span class="marker">3</span>CONTEXT.md</span></div>
+        <div class="meta"><span><span class="marker">2</span>CONTEXT.md</span></div>
         <h4>Auth package</h4>
         <p>Owns session issuance and validation. Never import from pkg/billing.</p>
         <div class="why">CONTEXT.md in pkg/auth/</div>
+      </article>
+      <article class="note-card" id="n-0002">
+        <div class="meta"><span><span class="marker">3</span>Decision 0002</span><span class="stamp accepted">accepted</span></div>
+        <h4>Rotating refresh tokens</h4>
+        <p>Refresh tokens rotate on every use; access tokens last 15 minutes.</p>
+        <div class="why">cited at session.ts:4 · supersedes <s>0001</s></div>
       </article>
     </div>
   </figure>

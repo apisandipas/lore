@@ -54,16 +54,17 @@
     svg.replaceChildren();
     const notes = figure.querySelector(".notes");
     const cards = [...figure.querySelectorAll(".note-card")];
-    if (getComputedStyle(svg).display === "none") {
-      // Stacked under the code: back to document order.
+    const stacked = getComputedStyle(svg).display === "none";
+    if (stacked || figure.classList.contains("centered")) {
+      // Stacked under the code, or a centred figure: document order.
       notes.style.height = "";
       cards.forEach((c) => { c.style.position = c.style.top = c.style.width = ""; });
-      return;
+      if (stacked) return;
     }
     const box = figure.getBoundingClientRect();
     const scroller = figure.querySelector("pre");
     const clip = scroller.getBoundingClientRect();
-    place(figure, notes, cards, box);
+    if (!figure.classList.contains("centered")) place(figure, notes, cards, box);
     for (const src of figure.querySelectorAll("[data-to]")) {
       for (const id of src.dataset.to.split(" ")) {
         const card = figure.querySelector(`#${id}`);
