@@ -53,14 +53,25 @@
 
   <div class="emacs wide" role="img" aria-label="An Emacs frame: pkg/auth/session.ts on the left, the lore sidebar listing its three notes on the right, lore:3 in the mode line, and the decision's summary in the echo area.">
     <div class="emacs-windows">
-      <pre class="file"><code><span class="k">import</span> { sign, verify } <span class="k">from</span> "./jwt";
+      <pre class="file"><code><span class="k">import</span> { sign, verify } <span class="k">from</span> <span class="s">"./jwt"</span>;
+<span class="k">import</span> { store, SessionError } <span class="k">from</span> <span class="s">"./store"</span>;
+
+<span class="dim">// see lore:<span class="cursor">d</span>ecision/0002 -- a refresh token is good for one use.</span>
+<span class="k">export async function</span> refresh(token: string) {
+  <span class="k">const</span> claims = verify(token);
+  <span class="k">if</span> (!(<span class="k">await</span> store.consume(token))) {
+    <span class="k">throw new</span> SessionError(<span class="s">"refresh token already used"</span>);
+  }
+  <span class="k">return</span> issue(claims);
+}
 
 <span class="k">const</span> ACCESS_TTL = 15 * 60;
-<span class="dim">// see lore:<span class="cursor">d</span>ecision/0002 -- a refresh token is good for one use.</span>
-<span class="k">export function</span> refresh(token: string) {
-  <span class="k">const</span> claims = verify(token);
-  revoke(token);
-  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), … };
+<span class="k">const</span> REFRESH_TTL = 30 * 24 * 60 * 60;
+
+<span class="k">export async function</span> issue(claims: Claims) {
+  <span class="k">const</span> refresh = sign(claims, REFRESH_TTL);
+  <span class="k">await</span> store.save(refresh, claims.sub);
+  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), refresh };
 }</code></pre>
       <div class="side"><pre><code><span class="h">pkg/auth/session.ts</span>
 <span class="dim">3 notes</span>

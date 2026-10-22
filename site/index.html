@@ -38,7 +38,10 @@
     <p class="lede">Specs, decisions and module notes live as plain Markdown or Org in your repo. lore knows which of them govern each file, and hands them to you, or to your agent, before the edit is made.</p>
     <div class="install">
       <div class="term"><pre><code><span class="cmd">curl -fsSL https://apisandipas.github.io/lore/install.sh | sh</span></code></pre><button class="copy" type="button">Copy</button></div>
-      <a class="button" href="guide.html">Get started</a>
+      <div class="install-next">
+        <a class="button" href="guide.html">Get started</a>
+        <span class="alt">or <code>brew install apisandipas/lore/lore</code></span>
+      </div>
     </div>
   </section>
 
@@ -46,13 +49,24 @@
     <div class="term file">
       <div class="term-bar"><span class="where"><span class="src" data-to="n-auth n-ctx">pkg/auth/</span>session.ts</span></div>
       <pre class="lines"><code><span class="l"><span class="k">import</span> { sign, verify } <span class="k">from</span> <span class="s">"./jwt"</span>;</span>
+<span class="l"><span class="k">import</span> { store, SessionError } <span class="k">from</span> <span class="s">"./store"</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="c">// see <span class="src" data-to="n-0002">lore:decision/0002</span> -- a refresh token is good for one use.</span></span>
+<span class="l"><span class="k">export async function</span> refresh(token: string) {</span>
+<span class="l">  <span class="k">const</span> claims = verify(token);</span>
+<span class="l">  <span class="k">if</span> (!(<span class="k">await</span> store.consume(token))) {</span>
+<span class="l">    <span class="k">throw new</span> SessionError(<span class="s">"refresh token already used"</span>);</span>
+<span class="l">  }</span>
+<span class="l">  <span class="k">return</span> issue(claims);</span>
+<span class="l">}</span>
 <span class="l"></span>
 <span class="l"><span class="k">const</span> ACCESS_TTL = 15 * 60;</span>
-<span class="l"><span class="c">// see <span class="src" data-to="n-0002">lore:decision/0002</span> -- a refresh token is good for one use.</span></span>
-<span class="l"><span class="k">export function</span> refresh(token: string) {</span>
-<span class="l">  <span class="k">const</span> claims = verify(token);</span>
-<span class="l">  revoke(token);</span>
-<span class="l">  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), refresh: issueRefresh(claims) };</span>
+<span class="l"><span class="k">const</span> REFRESH_TTL = 30 * 24 * 60 * 60;</span>
+<span class="l"></span>
+<span class="l"><span class="k">export async function</span> issue(claims: Claims) {</span>
+<span class="l">  <span class="k">const</span> refresh = sign(claims, REFRESH_TTL);</span>
+<span class="l">  <span class="k">await</span> store.save(refresh, claims.sub);</span>
+<span class="l">  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), refresh };</span>
 <span class="l">}</span></code></pre>
     </div>
     <div class="notes">

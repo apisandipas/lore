@@ -338,12 +338,13 @@ pre code { background: none; padding: 0; font-size: inherit; border-radius: 0; }
 
 .install {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.8rem 1.4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.4rem;
   margin: 0 0 1rem;
 }
-.install .term { margin: 0; flex: 0 1 auto; min-width: 0; }
+.install-next { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.1rem; }
+.install .term { margin: 0; max-width: 100%; }
 .install .term pre { padding: 0.6rem 0.9rem; }
 .install .term-bar { display: none; }
 .install .term { display: flex; align-items: center; }
