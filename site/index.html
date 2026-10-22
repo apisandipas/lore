@@ -58,15 +58,6 @@
 <span class="l">    <span class="k">throw new</span> SessionError(<span class="s">"refresh token already used"</span>);</span>
 <span class="l">  }</span>
 <span class="l">  <span class="k">return</span> issue(claims);</span>
-<span class="l">}</span>
-<span class="l"></span>
-<span class="l"><span class="k">const</span> ACCESS_TTL = 15 * 60;</span>
-<span class="l"><span class="k">const</span> REFRESH_TTL = 30 * 24 * 60 * 60;</span>
-<span class="l"></span>
-<span class="l"><span class="k">export async function</span> issue(claims: Claims) {</span>
-<span class="l">  <span class="k">const</span> refresh = sign(claims, REFRESH_TTL);</span>
-<span class="l">  <span class="k">await</span> store.save(refresh, claims.sub);</span>
-<span class="l">  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), refresh };</span>
 <span class="l">}</span></code></pre>
     </div>
     <div class="notes">
@@ -74,8 +65,7 @@
         <div class="meta"><span><span class="marker">1</span>Decision 0002</span><span class="stamp accepted">accepted</span></div>
         <h4>Rotating refresh tokens</h4>
         <p>Refresh tokens rotate on every use; access tokens last 15 minutes.</p>
-        <div class="old">supersedes <s>0001 Hard expiry</s></div>
-        <div class="why">cited at session.ts:4</div>
+        <div class="why">cited at session.ts:4 · supersedes <s>0001</s></div>
       </article>
       <article class="note-card" id="n-auth">
         <div class="meta"><span><span class="marker">2</span>Spec</span><span class="stamp accepted">accepted</span></div>
