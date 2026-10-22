@@ -52,7 +52,12 @@
   <p class="lede">This guide sets up lore in a small app, writes the notes it already needs, and takes one feature, due dates on tasks, through the whole flow. Every block of output below is what lore printed.</p>
 
   <h2 id="install">Install</h2>
-  <p>On Linux or macOS, the install script puts a standalone <code>lore</code> in <code>~/.local/bin</code>. It needs no Bun or Node, and checks the download against the release’s checksums.</p>
+  <p>With Homebrew, on macOS or Linux, which brings ripgrep too:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">Homebrew</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">brew install apisandipas/lore/lore</span></code></pre>
+  </div>
+  <p>Without Homebrew, the install script puts a standalone <code>lore</code> in <code>~/.local/bin</code>. It needs no Bun or Node, and checks the download against the release’s checksums.</p>
   <div class="term">
     <div class="term-bar"><span class="where">Linux and macOS</span><button class="copy" type="button">Copy</button></div>
 <pre><code><span class="cmd">curl -fsSL https://apisandipas.github.io/lore/install.sh | sh</span></code></pre>

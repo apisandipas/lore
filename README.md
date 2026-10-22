@@ -29,7 +29,13 @@ No index, no database, no embeddings, no network. Every command reads the workin
 
 ## Install
 
-On Linux or macOS, install the standalone binary (no Bun or Node needed) into `~/.local/bin`:
+With Homebrew, on macOS or Linux (brings ripgrep too):
+
+```bash
+brew install apisandipas/lore/lore
+```
+
+Or install the standalone binary (no Bun or Node needed) into `~/.local/bin`:
 
 ```bash
 curl -fsSL https://apisandipas.github.io/lore/install.sh | sh
