@@ -13,6 +13,9 @@ need() { command -v "$1" >/dev/null 2>&1 || fail "needs $1"; }
 need curl
 need tar
 
+# NixOS runs no generic Linux binaries; the flake is the way in there.
+[ -e /etc/NIXOS ] && fail "on NixOS, use the flake: nix run github:$repo -- help"
+
 case $(uname -s) in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
@@ -50,10 +53,11 @@ fi
 [ -n "$expected" ] && [ "$expected" = "$actual" ] || fail "checksum mismatch for $asset"
 
 tar -xzf "$tmp/$asset" -C "$tmp"
+chmod +x "$tmp/lore"
+installed=$("$tmp/lore" --version) || fail "the downloaded lore does not run on this system"
 mkdir -p "$dir"
 mv "$tmp/lore" "$dir/lore"
-chmod +x "$dir/lore"
-echo "Installed $dir/lore ($("$dir/lore" --version))"
+echo "Installed $dir/lore ($installed)"
 
 case :$PATH: in
   *:"$dir":*) ;;
