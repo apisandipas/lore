@@ -47,7 +47,7 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
   for (const { field, add, values } of changes.values()) {
     // Superseding also rewrites the old note, so it keeps its own command.
     if (field === SUPERSEDES || (field === "status" && values.includes(SUPERSEDED))) {
-      return fail(`supersede with lore new <type> <title> --supersedes ${note.stem}`);
+      return fail(`supersede with lore new <type> <title> --supersedes ${note.name}`);
     }
     const def = fields[field];
     if (!def) return fail(`'${field}' is not a field of ${note.type ?? "an untyped note"} (fields: ${Object.keys(fields).join(", ")})`);

@@ -1,6 +1,6 @@
 import { createNote, link, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
-import { linkTargets, type Note } from "../parse";
+import { linkTargets, NOTE_FILE, type Note } from "../parse";
 import { fieldProblems } from "../validate";
 import { idPattern } from "../schema";
 import { linkTo, type Result } from "./shared";
@@ -38,11 +38,11 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     const { note, error } = g.find(ref);
     if (!note) return { code: 1, out: `lore new: --supersedes ${error}\n` };
     if (note.status === SUPERSEDED) {
-      return { code: 1, out: `lore new: ${note.stem} is already superseded by ${g.current(note).stem}\n` };
+      return { code: 1, out: `lore new: ${note.name} is already superseded by ${g.current(note).name}\n` };
     }
     const allowed = note.def?.fields.status?.enum;
     if (allowed && !allowed.includes(SUPERSEDED)) {
-      return { code: 1, out: `lore new: ${note.type} has no '${SUPERSEDED}' status, so ${note.stem} cannot be superseded\n` };
+      return { code: 1, out: `lore new: ${note.type} has no '${SUPERSEDED}' status, so ${note.name} cannot be superseded\n` };
     }
     olds.push(note);
   }
@@ -81,7 +81,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const fields: Fields = { type: def.name };
   const status = def.fields.status?.enum?.[0];
   if (status) fields.status = status;
-  if (olds.length) fields[SUPERSEDES] = olds.map((o) => link(o.stem));
+  if (olds.length) fields[SUPERSEDES] = olds.map((o) => link(o.name));
   for (const [field, value] of fieldValues) fields[field] = value;
   // What the old decisions governed, the new one now governs.
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
@@ -90,17 +90,29 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const template = tree.read(`.lore/templates/${def.name}.${def.format}`);
   const body = template?.replaceAll("{{title}}", title) ?? `${def.format === "org" ? "*" : "#"} ${title}\n`;
 
+  // Bare names that meant one note now mean two. Found before writing, while
+  // they still resolve; check reports them from now on.
+  const bare = (t: string) => t.trim().replace(/^\.\//, "").replace(NOTE_FILE, "").toLowerCase() === stem.toLowerCase();
+  const clashes = [
+    ...g.notes.flatMap((n) => n.links.map((l) => ({ at: `${n.path}:${l.line}`, target: l.target, was: g.resolve(l.target).note }))),
+    ...g.citations.map((c) => ({ at: `${c.file}:${c.line}`, target: c.target, was: g.resolve(c.target).note })),
+  ].filter((c) => c.was && bare(c.target));
+
   createNote(tree, path, fields, body);
   for (const old of olds) updateNote(tree, old.path, { status: SUPERSEDED, anchors: null });
 
   if (opts.json) {
     const pathOf = (v: string) => g.resolve(linkTargets(v)[0]!).note!.path;
     const links = Object.fromEntries([...linked].map(([field, values]) => [field, values.map(pathOf)]));
-    return { code: 0, out: `${JSON.stringify({ path, superseded: olds.map((o) => o.path), links }, null, 2)}\n` };
+    return { code: 0, out: `${JSON.stringify({ path, superseded: olds.map((o) => o.path), links, ambiguous: clashes.map((c) => ({ at: c.at, target: c.target, name: c.was!.name })) }, null, 2)}\n` };
   }
   const lines = [
     `created ${path}`,
     ...olds.map((o) => `marked ${o.path} superseded${o.anchors.length ? " and moved its anchors" : ""}`),
   ];
+  if (clashes.length) {
+    lines.push(`'${stem}' now names two notes; these meant ${clashes[0]!.was!.name}, so name it that way:`);
+    for (const c of clashes) lines.push(`  ${c.at}: '${c.target}' → ${c.was!.name}`);
+  }
   return { code: 0, out: `${lines.join("\n")}\n` };
 }

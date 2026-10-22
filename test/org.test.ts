@@ -144,9 +144,9 @@ describe("writing Org notes", () => {
       "docs/efforts/e.org": "#+specs: [[a]] [[b]]\n\n* Tasks\n- [ ] one\n",
     });
     expect((await run(["set", "e", "specs+=c"], tree)).code).toBe(0);
-    expect(tree.read("docs/efforts/e.org")).toStartWith("#+specs: [[a]] [[b]] [[c]]\n");
+    expect(tree.read("docs/efforts/e.org")).toStartWith("#+specs: [[a]] [[b]] [[spec/c]]\n");
     const g = loadGraph(tree);
-    expect(g.byPath.get("docs/efforts/e.org")!.links.map((l) => l.target)).toEqual(["a", "b", "c"]);
+    expect(g.byPath.get("docs/efforts/e.org")!.links.map((l) => l.target)).toEqual(["a", "b", "spec/c"]);
     expect(checkGraph(g)).toEqual([]);
   });
 
@@ -185,7 +185,7 @@ describe("new Org notes", () => {
     await run(["new", "Spec", "Tags"], tree);
     expect(tree.read("docs/specs/tags.org")).toBe("#+type: Spec\n#+status: draft\n* Tags\n");
     await run(["new", "Effort", "Tag views", "--link", "specs=tags"], tree);
-    expect(tree.read("docs/efforts/tag-views.md")).toBe('---\ntype: Effort\nstatus: planned\nspecs: ["[[tags]]"]\n---\n# Tag views\n');
+    expect(tree.read("docs/efforts/tag-views.md")).toBe('---\ntype: Effort\nstatus: planned\nspecs: ["[[spec/tags]]"]\n---\n# Tag views\n');
   });
 
   test("format must be md or org", async () => {

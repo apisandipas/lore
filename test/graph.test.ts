@@ -149,7 +149,7 @@ describe("resolving", () => {
     const g = loadGraph(tree());
     expect(g.resolve("CONTEXT.md").note?.path).toBe("CONTEXT.md");
     expect(g.find("./src/CONTEXT.md").note?.path).toBe("src/CONTEXT.md");
-    expect(checkGraph(g).map((p) => p.message)).toEqual(["link 'CONTEXT' is ambiguous: it matches 2 notes"]);
+    expect(checkGraph(g).map((p) => p.message)).toEqual(["link 'CONTEXT' is ambiguous: it matches CONTEXT.md and src/CONTEXT.md"]);
   });
 
   test("an ambiguous name lists what it matches", () => {

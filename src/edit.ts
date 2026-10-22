@@ -10,8 +10,8 @@ export type Value = string | string[] | Record<string, string>;
 export type Fields = Record<string, Value | null>;
 
 // How a frontmatter field links to a note.
-export function link(stem: string): string {
-  return `[[${stem}]]`;
+export function link(name: string): string {
+  return `[[${name}]]`;
 }
 
 // Sets or removes each field in order, leaving the rest of the file alone. Text

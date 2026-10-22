@@ -57,9 +57,11 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 
 **Org notes** work the same, written the Org way: fields are the `#+key: value` lines at the top (`#+status: accepted`, `#+anchors: [src/items/**]`), links are `[[name]]`, `[[name][label]]` or `[[file:prd.org][the PRD]]`, and checklists are `- [ ]` and `[X]`. Both kinds can sit in one repo, and a Markdown effort can plan against an Org spec.
 
-**Links** between notes use double brackets: by filename, by path, by alias, or by number prefix (`0007`). Links inside frontmatter fields, such as `spec: "[[auth]]"`, are the edges `lore context` follows.
+**Names.** A note is named by its type and filename: `spec/due-dates`, `effort/due-dates`, `decision/0007-money-is-integer-cents` (or `decision/0007`). A spec and the effort that builds it can share a filename; the type tells them apart. lore always writes names this way, and still reads a bare filename while only one note has it.
 
-**Citations** are how code points at a note: a comment containing `lore:` followed by the note's name, for example `// see lore:0012`. Code uses this instead of double brackets because bash tests and Lua strings contain double brackets too.
+**Links** between notes use double brackets: by name, by filename, by path, by alias, or by number prefix (`0007`). Links inside frontmatter fields, such as `specs: ["[[spec/auth]]"]`, are the edges `lore context` follows.
+
+**Citations** are how code points at a note: a comment containing `lore:` followed by the note's name, for example `// see lore:decision/0012`. Code uses this instead of double brackets because bash tests and Lua strings contain double brackets too.
 
 **Anchors** are how a note claims code: a path (`pkg/auth`), a glob (`pkg/auth/**`), or `symbol:Name`, which matches any file using that word.
 

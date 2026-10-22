@@ -70,7 +70,7 @@ export function contextFor(g: Graph, files: string[]): Match[] {
     const now = g.current(m.note);
     if (now === m.note) continue;
     matches.delete(m.note.path);
-    for (const reason of m.reasons) add(now, m.rank, m.specificity, `${reason} (via superseded ${m.note.stem})`);
+    for (const reason of m.reasons) add(now, m.rank, m.specificity, `${reason} (via superseded ${m.note.name})`);
   }
 
   return [...matches.values()].sort(
@@ -99,7 +99,7 @@ export function renderContext(
     const summary = m.note.summary ? `  ${m.note.summary}\n` : "";
     const history = g
       .supersedes(m.note)
-      .map((old) => `  supersedes ${old.stem}: ${old.summary || old.title}\n`)
+      .map((old) => `  supersedes ${old.name}: ${old.summary || old.title}\n`)
       .join("");
     const entry = `\n${label(m.note)}\n  ${m.note.path}\n  matched: ${m.reasons.join("; ")}\n${summary}${history}${body}`;
     // Roughly four characters per token.
