@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commands · lore</title>
+<meta name="description" content="Every lore command, its options, and what it prints.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Commands</h2>
+      <ol>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#context">context</a></li>
+        <li><a href="#show">show</a></li>
+        <li><a href="#list">list</a></li>
+        <li><a href="#check">check</a></li>
+        <li><a href="#next">next</a></li>
+        <li><a href="#new">new</a></li>
+        <li><a href="#set">set</a></li>
+        <li><a href="#tick">tick</a></li>
+        <li><a href="#freeze">freeze</a></li>
+        <li><a href="#init">init</a></li>
+        <li><a href="#json">--json</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Reference</p>
+  <h1>Commands</h1>
+  <p class="lede">Ten commands. Five read, four write, and <code>init</code> sets a repo up. Anywhere a command takes a note, give its <a href="concepts.html#names">name</a>, <code>spec/auth</code> or <code>decision/0002</code>, or a filename, path, alias or number that names only one note.</p>
+
+  <h2 id="overview">Overview</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><a href="#context"><code>context &lt;file&gt;…</code></a></td><td>The notes that govern these files, most relevant first.</td></tr>
+        <tr><td><a href="#show"><code>show &lt;note&gt;</code></a></td><td>A note with its history, links, backlinks, citations, anchors and checklist.</td></tr>
+        <tr><td><a href="#list"><code>list</code></a></td><td>Every note, one per line.</td></tr>
+        <tr><td><a href="#check"><code>check</code></a></td><td>Every problem with the notes. Exits 1 if there is one.</td></tr>
+        <tr><td><a href="#next"><code>next</code></a></td><td>What to do next, and the skill that does it.</td></tr>
+        <tr><td><a href="#new"><code>new &lt;type&gt; &lt;title&gt;</code></a></td><td>Create a note from the type’s template.</td></tr>
+        <tr><td><a href="#set"><code>set &lt;note&gt; &lt;field&gt;=&lt;value&gt;…</code></a></td><td>Change fields, checked against the schema.</td></tr>
+        <tr><td><a href="#tick"><code>tick &lt;note&gt;</code></a></td><td>Tick the first open checklist item.</td></tr>
+        <tr><td><a href="#freeze"><code>freeze &lt;note&gt;</code></a></td><td>Record the version of every spec a note links to.</td></tr>
+        <tr><td><a href="#init"><code>init</code></a></td><td>Write <code>.lore/</code> and check the skills are installed.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="context" class="cmd-head"><code>lore context &lt;file&gt;…</code></h2>
+  <p>The notes that govern one or more files: code citations, symbol anchors, path anchors from most specific, <code>CONTEXT.md</code> files from nearest, then notes one frontmatter link away. Each says why it matched.</p>
+  <dl class="options">
+    <dt>--full</dt><dd>Include each note’s body.</dd>
+    <dt>--budget &lt;tokens&gt;</dt><dd>Cap the output. The default is 4000.</dd>
+    <dt>--session &lt;id&gt;</dt><dd>Only notes this session has not been shown, or that changed since. Prints nothing when there are none. <a href="agents.html#sessions">Used by the agent hook.</a></dd>
+    <dt>--forget</dt><dd>With <code>--session</code>, start the session over.</dd>
+  </dl>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore context --full pkg/billing/charge.ts</span>
+<span class="out">pkg/billing/charge.ts: 1 note
+
+<span class="t">Money is integer cents</span>  (Decision, accepted)
+  docs/decisions/0003-money-is-integer-cents.md
+  <span class="dim">matched: cited at charge.ts:1; anchor pkg/billing/**</span>
+  Money is a whole number of cents everywhere, converted to dollars only for display.
+
+    # Money is integer cents
+
+    ## Context
+    Floating-point dollars round differently on the server and in the browser.
+
+    ## Decision
+    Money is a whole number of cents everywhere, converted to dollars only for display.
+
+    ## Consequences
+    Every price field is an integer, and its name ends in `Cents`.</span></code></pre>
+  </div>
+
+  <h2 id="show" class="cmd-head"><code>lore show &lt;note&gt;</code></h2>
+  <p>Everything lore knows about one note: its supersede history, links out, links in, the code that cites it, what its anchors match, and checklist progress.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore show effort/due-dates</span>
+<span class="out"><span class="t">Due dates</span>  (Effort, active)
+docs/efforts/due-dates.md
+Store the day as a real date column, sort in the query, and colour in the list view.
+Checklist: 1 of 3 done
+
+Links to:
+  specs: spec/due-dates → docs/specs/due-dates.md</span></code></pre>
+  </div>
+  <p>A decision with history shows the whole chain; see <a href="concepts.html#superseding">Superseding</a>.</p>
+
+  <h2 id="list" class="cmd-head"><code>lore list</code></h2>
+  <dl class="options">
+    <dt>--type &lt;type&gt;</dt><dd>Only notes of this type.</dd>
+    <dt>--summaries</dt><dd>Add each note’s summary. With it, an agent can find notes by meaning without embeddings.</dd>
+  </dl>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore list --summaries</span>
+<span class="out">docs/decisions/0001-hard-expiry.md  <span class="t">Hard expiry</span>  (Decision, superseded)
+  Every session hard-expires after 15 minutes.
+
+docs/decisions/0002-rotating-refresh-tokens.md  <span class="t">Rotating refresh tokens</span>  (Decision, accepted)
+  Refresh tokens rotate on every use; access tokens last 15 minutes.
+
+docs/decisions/0003-money-is-integer-cents.md  <span class="t">Money is integer cents</span>  (Decision, accepted)
+  Money is a whole number of cents everywhere, converted to dollars only for display.
+
+docs/efforts/due-dates.md  <span class="t">Due dates</span>  (Effort, active)
+  Store the day as a real date column, sort in the query, and colour in the list view.
+
+docs/specs/auth.md  <span class="t">Auth</span>  (Spec, accepted)
+  Who can sign in, how, and for how long.
+
+docs/specs/due-dates.md  <span class="t">Due dates</span>  (Spec, accepted)
+  A task can have a day it is due, and overdue tasks stand out.
+
+pkg/auth/CONTEXT.md  <span class="t">Auth package</span>
+  Owns session issuance and validation. Never import from pkg/billing.</span></code></pre>
+  </div>
+
+  <h2 id="check" class="cmd-head"><code>lore check</code></h2>
+  <p>Reports broken or ambiguous links and citations, citations of superseded decisions, anchors that match nothing, schema violations, superseding mistakes, and specs that changed under an effort that is not done. Exits 1 when it finds a problem, so it belongs in CI.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore check</span>
+<span class="out">docs/specs/search.md:3: 'status' is 'finished'; expected one of draft, accepted, retired
+docs/specs/search.md:7: link 'spec/indexing' matches no note
+pkg/billing/charge.ts:6: citation 'lore:decision/0009' matches no note
+
+8 notes, 3 citations: 3 problems</span></code></pre>
+  </div>
+  <p>And with nothing to report:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore check</span>
+<span class="out"><span class="ok">7 notes, 2 citations: no problems</span></span></code></pre>
+  </div>
+
+  <h2 id="next" class="cmd-head"><code>lore next</code></h2>
+  <p>Reads spec and effort state and ranks what to do, naming the <code>lore-*</code> skill that does it. In order: a spec that changed under an effort, an effort ready to ship, the next open task, an effort not yet planned or frozen, an accepted spec with no effort, a draft spec.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore next</span>
+<span class="out">next: <span class="hl">lore-build</span> docs/efforts/due-dates.md
+  <span class="t">Due dates</span>  (Effort, active)
+  1 of 3 done
+  next item: Show a date picker when editing a task</span></code></pre>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When it says</th><th>It means</th></tr></thead>
+      <tbody>
+        <tr><td><code>lore-plan</code> … changed since it was planned</td><td>A spec moved under an effort; the tasks may be stale.</td></tr>
+        <tr><td><code>lore-ship</code> … all items done</td><td>Every task is ticked; the effort needs closing.</td></tr>
+        <tr><td><code>lore-build</code> … next item</td><td>Work to do: the first open task.</td></tr>
+        <tr><td><code>lore-plan</code> … planned but not frozen</td><td>An effort exists but has not been agreed and frozen.</td></tr>
+        <tr><td><code>lore-plan</code> … accepted spec with no effort</td><td>An accepted spec nobody has planned.</td></tr>
+        <tr><td><code>lore-spec</code> … draft spec</td><td>A spec still being worked out.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="new" class="cmd-head"><code>lore new &lt;type&gt; &lt;title&gt;</code></h2>
+  <p>Creates a note in the type’s directory from <code>.lore/templates/&lt;Type&gt;.md</code> (or <code>.org</code>), numbered if the type has an <code>id</code>, starting at the first status in its enum.</p>
+  <dl class="options">
+    <dt>--supersedes &lt;note&gt;</dt><dd>Mark that note superseded and move its anchors to the new one. Repeatable.</dd>
+    <dt>--link &lt;field&gt;=&lt;note&gt;</dt><dd>Link a note in a field, for example <code>specs=auth</code>. Repeatable.</dd>
+  </dl>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore new Decision "Store due dates as dates"</span>
+<span class="out">created docs/decisions/0004-store-due-dates-as-dates.md</span>
+<span class="cmd">lore new Effort "Due dates" --link specs=spec/due-dates</span>
+<span class="out">created docs/efforts/due-dates.md</span></code></pre>
+  </div>
+
+  <h2 id="set" class="cmd-head"><code>lore set &lt;note&gt; &lt;field&gt;=&lt;value&gt;…</code></h2>
+  <p>Changes fields in place, after checking each value against the schema: enums, types, and links that must name exactly one note of the right type. <code>field+=value</code> adds to a list field. Superseding is left to <code>lore new --supersedes</code>.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore set effort/due-dates status=active</span>
+<span class="out">updated docs/efforts/due-dates.md
+  status: active</span></code></pre>
+  </div>
+
+  <h2 id="tick" class="cmd-head"><code>lore tick &lt;note&gt;</code></h2>
+  <p>Ticks the first open checklist item and names the next, or says every item is done. Items inside code blocks are skipped.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore tick effort/due-dates</span>
+<span class="out">ticked docs/efforts/due-dates.md: Add a due_date column to tasks, with a migration
+next: Show a date picker when editing a task  (1 of 3 done)</span></code></pre>
+  </div>
+
+  <h2 id="freeze" class="cmd-head"><code>lore freeze &lt;note&gt;</code></h2>
+  <p>Records the current version of every spec the note links to, through the fields the schema lists under <code>freeze</code>. From then on <code>check</code> reports when one changes.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore freeze effort/due-dates</span>
+<span class="out">froze docs/efforts/due-dates.md against:
+  docs/specs/due-dates.md 34dd79dc3cec</span></code></pre>
+  </div>
+
+  <h2 id="init" class="cmd-head"><code>lore init</code></h2>
+  <p>Writes <code>.lore/</code>: the default schema, a template per type, and a <code>WORKFLOW.md</code> the skills read first. Keeps any file already there, and says how to install the skills if they are missing.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore init</span>
+<span class="out">created .lore/schema.yml
+created .lore/WORKFLOW.md
+created .lore/templates/Spec.md
+created .lore/templates/Decision.md
+created .lore/templates/Effort.md
+
+skills: found in ~/.claude/skills, ~/.agents/skills
+
+Read .lore/WORKFLOW.md, then start a spec with lore-spec.</span></code></pre>
+  </div>
+
+  <h2 id="json"><code>--json</code></h2>
+  <p>Every command but <code>help</code> and <code>version</code> takes <code>--json</code>. It is the interface editors and scripts build on; the <a href="emacs.html">Emacs package</a> uses nothing else.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore context --json pkg/billing/charge.ts</span>
+<span class="out">{
+  "files": [
+    "pkg/billing/charge.ts"
+  ],
+  "notes": [
+    {
+      "path": "docs/decisions/0003-money-is-integer-cents.md",
+      "title": "Money is integer cents",
+      "type": "Decision",
+      "status": "accepted",
+      "summary": "Money is a whole number of cents everywhere, converted to dollars only for display.",
+      "matched": [
+        "cited at charge.ts:1",
+        "anchor pkg/billing/**"
+      ],
+      "supersedes": []
+    }
+  ]
+}</span></code></pre>
+  </div>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="concepts.html"><small>Back</small>Concepts</a>
+    <a class="n" href="agents.html"><small>Next</small>Agents</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

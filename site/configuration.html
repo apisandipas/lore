@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration · lore</title>
+<meta name="description" content="The .lore directory: the schema of note types and fields, templates, and WORKFLOW.md.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Configuration</h2>
+      <ol>
+        <li><a href="#schema">The schema</a></li>
+        <li><a href="#types">Types</a></li>
+        <li><a href="#fields">Fields</a></li>
+        <li><a href="#templates">Templates</a></li>
+        <li><a href="#workflow">WORKFLOW.md</a></li>
+        <li><a href="#without">Without a schema</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Configuration</p>
+  <h1>The <code>.lore</code> directory</h1>
+  <p class="lede">Three things, all written by <code>lore init</code> and all yours to edit: the schema of note types, a template for each type, and the workflow the agent skills follow.</p>
+
+  <h2 id="schema">The schema</h2>
+  <p><code>.lore/schema.yml</code> at the repo root says where notes live, what to ignore, and which types of note exist. This is the default, with every option shown:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">.lore/schema.yml</span><button class="copy" type="button">Copy</button></div>
+<pre><code>notes: docs
+ignore: [test/fixtures/**]          <span class="c"># globs excluded everywhere</span>
+types:
+  Spec:
+    dir: docs/specs                 <span class="c"># notes here are Specs unless they say otherwise</span>
+    format: md                      <span class="c"># or org: what lore new writes</span>
+    fields:
+      status: { enum: [draft, accepted, retired], required: true }
+  Decision:
+    dir: docs/decisions
+    id: <span class="s">"{n:4}"</span>                     <span class="c"># lore new numbers these 0001, 0002, ...</span>
+    summary: Decision               <span class="c"># the summary comes from the "## Decision" section</span>
+    fields:
+      status: { enum: [proposed, accepted, superseded], required: true }
+      supersedes: { link: Decision, many: true }
+  Effort:
+    dir: docs/efforts
+    freeze: [specs]                 <span class="c"># fields lore freeze follows</span>
+    fields:
+      specs: { link: Spec, many: true, required: true }
+      status: { enum: [planned, active, done] }</code></pre>
+  </div>
+
+  <h2 id="types">Types</h2>
+  <dl class="options">
+    <dt>dir</dt><dd>Where <code>lore new</code> puts the type’s notes. A note in this directory is of this type unless its <code>type</code> field says otherwise.</dd>
+    <dt>format</dt><dd><code>md</code> (the default) or <code>org</code>: the kind of file <code>lore new</code> writes.</dd>
+    <dt>id</dt><dd>Numbers new notes. <code>{n:4}</code> gives <code>0001</code>, <code>0002</code>; the number then works as a link.</dd>
+    <dt>summary</dt><dd>A heading whose first paragraph is the summary, instead of the note’s first paragraph.</dd>
+    <dt>freeze</dt><dd>Link fields <code>lore freeze</code> records versions for. A type with <code>freeze</code> is what <code>lore next</code> treats as an effort.</dd>
+    <dt>fields</dt><dd>The fields <code>lore check</code> and <code>lore set</code> enforce.</dd>
+  </dl>
+
+  <h2 id="fields">Fields</h2>
+  <p>Each field can be <code>required</code>, limited to an <code>enum</code>, or a <code>link</code> to another type, optionally <code>many</code>. The first value of a <code>status</code> enum is the one <code>lore new</code> starts a note with.</p>
+  <p>Say your team wants an owner on every decision, and a Runbook type:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">.lore/schema.yml (excerpt)</span><button class="copy" type="button">Copy</button></div>
+<pre><code>  Decision:
+    dir: docs/decisions
+    id: <span class="s">"{n:4}"</span>
+    summary: Decision
+    fields:
+      status: { enum: [proposed, accepted, superseded], required: true }
+      supersedes: { link: Decision, many: true }
+      owner: { required: true }
+  Runbook:
+    dir: docs/runbooks
+    fields:
+      status: { enum: [current, stale] }
+      service: { link: Spec }</code></pre>
+  </div>
+  <p>From then on, <code>lore check</code> reports any decision without an owner, and <code>lore set</code> refuses a runbook whose <code>service</code> is not a Spec:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore check</span>
+<span class="out">docs/decisions/0001-hard-expiry.md:1: Decision needs 'owner'
+docs/decisions/0002-rotating-refresh-tokens.md:1: Decision needs 'owner'
+docs/decisions/0003-money-is-integer-cents.md:1: Decision needs 'owner'
+
+8 notes, 2 citations: 3 problems</span>
+<span class="cmd">lore new Runbook "Restart auth"</span>
+<span class="out">created docs/runbooks/restart-auth.md</span>
+<span class="cmd">lore set runbook/restart-auth service=decision/0002</span>
+<span class="out">lore set: docs/runbooks/restart-auth.md: 'service' links to decision/0002-rotating-refresh-tokens, a Decision; expected a Spec</span>
+<span class="cmd">lore set runbook/restart-auth service=spec/auth</span>
+<span class="out">updated docs/runbooks/restart-auth.md
+  service: "[[spec/auth]]"</span></code></pre>
+  </div>
+
+  <h2 id="templates">Templates</h2>
+  <p><code>lore new</code> fills <code>.lore/templates/&lt;Type&gt;.md</code>, or <code>.org</code> for an Org type, replacing <code>{{title}}</code>, and adds the type and first status as fields. The default Decision template:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">.lore/templates/Decision.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code># {{title}}
+
+## Context
+
+## Decision
+
+## Consequences</code></pre>
+  </div>
+  <p>A type with no template gets a note with just its title.</p>
+
+  <h2 id="workflow">WORKFLOW.md</h2>
+  <p><code>.lore/WORKFLOW.md</code> is the project’s version of the flow. Every <code>lore-*</code> skill reads it first, and where it disagrees with the skill, it wins. Its Size section says what counts as small work, which skips the flow.</p>
+  <aside class="sidenote">The CLI never reads <code>WORKFLOW.md</code>. Mechanics live in lore, process lives in prose, and you can change the process without touching the tool.</aside>
+
+  <h2 id="without">Without a schema</h2>
+  <p>With no <code>.lore/schema.yml</code>, lore uses the git root and <code>docs/</code>, and still checks links, citations and anchors. It just has no types to check fields against, and <code>lore next</code> has no efforts to read.</p>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="emacs.html"><small>Back</small>Emacs</a>
+    <a class="n" href="index.html"><small>Start over</small>Home</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

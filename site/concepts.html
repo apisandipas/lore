@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepts · lore</title>
+<meta name="description" content="Notes, links, citations, anchors, CONTEXT.md, superseding, efforts and freezing, and Org notes.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Concepts</h2>
+      <ol>
+        <li><a href="#notes">Notes</a></li>
+        <li><a href="#names">Names</a></li>
+        <li><a href="#links">Links</a></li>
+        <li><a href="#citations">Citations</a></li>
+        <li><a href="#anchors">Anchors</a></li>
+        <li><a href="#context-md">CONTEXT.md</a></li>
+        <li><a href="#ranking">How context ranks</a></li>
+        <li><a href="#superseding">Superseding</a></li>
+        <li><a href="#freezing">Efforts and freezing</a></li>
+        <li><a href="#org">Org notes</a></li>
+        <li><a href="#no-index">No index</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Concepts</p>
+  <h1>Notes, and the ways they reach code</h1>
+  <p class="lede">lore has one kind of thing, a note, and four ways for a note to reach a file: the code cites it, the note anchors the code, it is a <code>CONTEXT.md</code> above the file, or it is linked from a note that does one of those.</p>
+
+  <h2 id="notes">Notes</h2>
+  <p>A note is a Markdown or Org file under the notes directory, <code>docs/</code> by default, plus every <code>CONTEXT.md</code> in the repo. Frontmatter is optional. When present, it gives the note a type and fields the schema checks:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">frontmatter</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">---</span>
+type: Decision
+status: accepted
+summary: One line shown in context output.   <span class="c"># default: a section or the first paragraph</span>
+aliases: [login]                              <span class="c"># other names that link here</span>
+anchors: [pkg/auth/**, "symbol:SessionManager"]
+<span class="fm">---</span></code></pre>
+  </div>
+  <p>The default schema has three types, each with a home directory, so a note in <code>docs/specs/</code> is a Spec without saying so:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>What it holds</th><th>Statuses</th></tr></thead>
+      <tbody>
+        <tr><td>Spec</td><td>What something should do, for whom, and what it leaves out. Edited in place.</td><td><span class="stamp draft">draft</span> <span class="stamp accepted">accepted</span> <span class="stamp retired">retired</span></td></tr>
+        <tr><td>Decision</td><td>A choice and its reasons. Numbered, and never edited once accepted.</td><td><span class="stamp proposed">proposed</span> <span class="stamp accepted">accepted</span> <span class="stamp superseded">superseded</span></td></tr>
+        <tr><td>Effort</td><td>A plan against one or more specs, with a task checklist.</td><td><span class="stamp planned">planned</span> <span class="stamp active">active</span> <span class="stamp done">done</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The types are yours to change in <a href="configuration.html"><code>.lore/schema.yml</code></a>.</p>
+
+  <h2 id="names">Names</h2>
+  <p>A note’s name is its type, lowercased, then its filename: <code>spec/due-dates</code>, <code>effort/due-dates</code>, <code>decision/0002-rotating-refresh-tokens</code>. A numbered note also answers to its number within its type, <code>decision/0002</code>. lore writes every link and message with these names.</p>
+  <p>So a spec and the effort that builds it can share a filename; the type tells them apart. A bare filename still works while only one note has it, so <code>lore show auth</code> is fine, but <code>lore show due-dates</code> asks which:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore show due-dates</span>
+<span class="out">lore show: 'due-dates' matches 2 notes:
+  effort/due-dates  docs/efforts/due-dates.md
+  spec/due-dates  docs/specs/due-dates.md</span></code></pre>
+  </div>
+  <aside class="sidenote">The type, not the directory, qualifies the name, so moving a type’s <code>dir</code> breaks no links.</aside>
+  <p>When <code>lore new</code> gives a second note a filename that bare links already use, it lists those links and the name each one meant, so you can qualify them before <code>lore check</code> complains.</p>
+
+  <h2 id="links">Links</h2>
+  <p>Notes link to each other with double brackets, by <a href="#names">name</a>: <code>[[decision/0001]]</code> finds <code>0001-hard-expiry.md</code>. A filename, path or alias works too while it names one note. A link inside a frontmatter field, such as <code>spec: "[[spec/auth]]"</code>, is an edge <code>lore context</code> follows: a file governed by this decision is shown its spec too.</p>
+
+  <figure class="annotated wide">
+    <div class="term file">
+      <div class="term-bar"><span class="where">docs/decisions/0002-rotating-refresh-tokens.md</span></div>
+      <pre class="lines"><code><span class="l"><span class="fm">---</span></span>
+<span class="l">type: Decision</span>
+<span class="l">status: accepted</span>
+<span class="l">supersedes: [<span class="src" data-to="c-0001">"[[decision/0001-hard-expiry]]"</span>]</span>
+<span class="l">spec: <span class="src" data-to="c-auth">"[[spec/auth]]"</span></span>
+<span class="l"><span class="fm">---</span></span>
+<span class="l"># Rotating refresh tokens</span>
+<span class="l"></span>
+<span class="l">## Context</span>
+<span class="l">Hard expiry (see [[decision/0001]]) signed people out mid-task,</span>
+<span class="l">and [[spec/auth]] says a session survives a browser restart.</span>
+<span class="l"></span>
+<span class="l">## Decision</span>
+<span class="l">Refresh tokens rotate on every use; access tokens last 15 minutes.</span></code></pre>
+    </div>
+    <div class="notes">
+      <article class="note-card" id="c-0001">
+        <div class="meta"><span><span class="marker">1</span>Decision 0001</span><span class="stamp superseded">superseded</span></div>
+        <h4>Hard expiry</h4>
+        <p>Every session hard-expires after 15 minutes.</p>
+        <div class="why">supersedes: the history</div>
+      </article>
+      <article class="note-card" id="c-auth">
+        <div class="meta"><span><span class="marker">2</span>Spec</span><span class="stamp accepted">accepted</span></div>
+        <h4>Auth</h4>
+        <p>Who can sign in, how, and for how long.</p>
+        <div class="why">spec: shown with this decision</div>
+      </article>
+    </div>
+  </figure>
+  <p class="caption wide">Field links are edges lore follows; the same links in the body are references a reader follows. <code>lore check</code> reports any link that matches no note, or more than one.</p>
+
+  <h2 id="citations">Citations</h2>
+  <p>Code points at a note with a comment containing <code>lore:</code> and the note’s name, such as <code>// see lore:decision/0012</code>. lore finds them with ripgrep, in any language.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">pkg/auth/session.ts</span><button class="copy" type="button">Copy</button></div>
+<pre class="lines"><code><span class="l"><span class="k">const</span> ACCESS_TTL = 15 * 60;</span>
+<span class="l"><span class="c">// see lore:decision/0002 -- a refresh token is good for one use.</span></span>
+<span class="l"><span class="k">export function</span> refresh(token: string) {</span></code></pre>
+  </div>
+  <aside class="sidenote">Why not double brackets in code too? Bash tests and Lua strings are full of them. <code>lore:</code> is unambiguous in every language.</aside>
+  <p>A citation is the strongest match lore knows: it ranks first in <code>lore context</code>. If the decision it names is superseded, <code>lore check</code> says so, and the code gets looked at again.</p>
+
+  <h2 id="anchors">Anchors</h2>
+  <p>Where a citation is code pointing at a note, an anchor is a note claiming code. The <code>anchors</code> field takes three forms:</p>
+  <dl class="options">
+    <dt>pkg/auth</dt><dd>A path: the file, or everything under the directory.</dd>
+    <dt>pkg/auth/**</dt><dd>A glob. More specific anchors rank higher.</dd>
+    <dt>symbol:SessionManager</dt><dd>Any file that uses the word, found with ripgrep.</dd>
+  </dl>
+  <p>An anchor that matches nothing is a <code>lore check</code> problem, so a note cannot quietly lose the code it governs in a rename.</p>
+
+  <h2 id="context-md">CONTEXT.md</h2>
+  <p>A <code>CONTEXT.md</code> describes the directory it sits in: what lives there, and the rules for it. Every <code>CONTEXT.md</code> above a file applies to it, nearest first, so <code>pkg/auth/session.ts</code> gets <code>pkg/auth/CONTEXT.md</code>, then <code>pkg/CONTEXT.md</code>, then the root one.</p>
+
+  <h2 id="ranking">How context ranks</h2>
+  <p><code>lore context</code> lists notes most relevant first, and says why each one matched:</p>
+  <ol>
+    <li><b>Code citations</b> in the file.</li>
+    <li><b>Symbol anchors</b> that the file uses.</li>
+    <li><b>Path anchors</b>, most specific first.</li>
+    <li><b><code>CONTEXT.md</code> files</b>, nearest first.</li>
+    <li><b>Notes one link away</b> through a frontmatter field, such as the spec of a decision found above.</li>
+  </ol>
+  <p>Output stops at a budget, 4000 tokens unless you pass <code>--budget</code>, so an agent is never handed the whole notes directory.</p>
+
+  <h2 id="superseding">Superseding</h2>
+  <p>Decisions are never edited or deleted once accepted. A new decision lists the old one in <code>supersedes</code>, and the old one becomes <span class="stamp superseded">superseded</span>. <code>lore new --supersedes</code> does both, and moves the old note’s anchors to the new one.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore new Decision "Rotating refresh tokens" --supersedes 0001</span>
+<span class="out">created docs/decisions/0002-rotating-refresh-tokens.md
+marked docs/decisions/0001-hard-expiry.md superseded</span></code></pre>
+  </div>
+  <p><code>lore context</code> always shows the decision in force, with one line of what it replaced. <code>lore show</code> walks the whole chain:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore show decision/0002</span>
+<span class="out"><span class="t">Rotating refresh tokens</span>  (Decision, accepted)
+docs/decisions/0002-rotating-refresh-tokens.md
+Refresh tokens rotate on every use; access tokens last 15 minutes.
+
+History (newest first):
+  <span class="hl">▸ decision/0002-rotating-refresh-tokens  (accepted)</span>
+    decision/0001-hard-expiry  (superseded)
+
+Links to:
+  supersedes: decision/0001-hard-expiry → docs/decisions/0001-hard-expiry.md
+  spec: spec/auth → docs/specs/auth.md
+  decision/0001 → docs/decisions/0001-hard-expiry.md
+  spec/auth → docs/specs/auth.md
+
+Cited by code:
+  pkg/auth/session.ts:4</span></code></pre>
+  </div>
+
+  <h2 id="freezing">Efforts and freezing</h2>
+  <p>An effort links the specs it was planned against and tracks its tasks as a checklist. <code>lore freeze</code> writes a hash of each spec’s body into the effort’s <code>frozen</code> field. If a spec changes while the effort is not done, <code>lore check</code> reports it and <code>lore next</code> sends you back to planning, because the tasks may be stale.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">docs/efforts/due-dates.md, after lore freeze</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">---</span>
+type: Effort
+status: active
+specs: ["[[spec/due-dates]]"]
+frozen:
+  docs/specs/due-dates.md: 34dd79dc3cec
+<span class="fm">---</span></code></pre>
+  </div>
+  <p>Once an effort is <span class="stamp done">done</span>, its frozen versions are history. A spec that changes after all its efforts shipped shows up in <code>lore next</code> as new work to plan.</p>
+
+  <h2 id="org">Org notes</h2>
+  <p>Notes can be Org files, and both kinds sit in one repo: a Markdown effort can plan against an Org spec. Fields are the <code>#+key: value</code> lines at the top, links are <code>[[spec/auth]]</code>, <code>[[spec/auth][label]]</code> or <code>[[file:prd.org][the PRD]]</code>, and checklists use <code>[X]</code>.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">docs/specs/search.org</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">#+title: Search
+#+status: accepted
+#+anchors: [src/search/**]</span>
+
+Find tasks by words in their title. Builds on [[spec/due-dates][due dates]] for filtering.
+
+* Behaviour
+- [X] Match whole words, case-insensitively
+- [ ] Filter by due date</code></pre>
+  </div>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore show search</span>
+<span class="out"><span class="t">Search</span>  (Spec, accepted)
+docs/specs/search.org
+Find tasks by words in their title. Builds on [[spec/due-dates][due dates]] for filtering.
+Checklist: 1 of 2 done
+
+Links to:
+  spec/due-dates → docs/specs/due-dates.md
+
+Anchors:
+  src/search/** → 1 file</span></code></pre>
+  </div>
+  <p>A value in brackets or quotes is read as YAML, so <code>#+anchors: [a, b]</code> is a list; anything else is text. Set <code>format: org</code> on a type and <code>lore new</code> writes <code>.org</code> notes from <code>.lore/templates/&lt;Type&gt;.org</code>.</p>
+
+  <h2 id="no-index">No index</h2>
+  <p>lore keeps no database and no cache. Every command reads the working tree, so it can never disagree with the files in front of you, on any branch. On a 21,000-file repository, <code>lore context</code> answers in about a tenth of a second.</p>
+  <aside class="sidenote">The reasoning is decision <b>0003</b> in lore’s own notes. lore’s design is written down as lore notes.</aside>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="guide.html"><small>Back</small>Guide</a>
+    <a class="n" href="commands.html"><small>Next</small>Commands</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

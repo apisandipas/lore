@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emacs · lore</title>
+<meta name="description" content="lore.el: the notes governing a file in a side window, citations you can follow, completion, eldoc and Flymake.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Emacs</h2>
+      <ol>
+        <li><a href="#setup">Set up</a></li>
+        <li><a href="#sidebar">The sidebar</a></li>
+        <li><a href="#follow">Follow citations and links</a></li>
+        <li><a href="#writing">While you write</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#org">Org</a></li>
+        <li><a href="#limits">Limits</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Editors</p>
+  <h1>lore in Emacs</h1>
+  <p class="lede"><code>lore.el</code> puts lore’s answers where you edit. Open any file in a lore repo and the notes that govern it are beside it, every citation is a link, and <code>lore check</code> problems are diagnostics at their lines.</p>
+
+  <div class="emacs wide" role="img" aria-label="An Emacs frame: pkg/auth/session.ts on the left, the lore sidebar listing its three notes on the right, lore:3 in the mode line, and the decision's summary in the echo area.">
+    <div class="emacs-windows">
+      <pre class="file"><code><span class="k">import</span> { sign, verify } <span class="k">from</span> "./jwt";
+
+<span class="k">const</span> ACCESS_TTL = 15 * 60;
+<span class="dim">// see lore:<span class="cursor">d</span>ecision/0002 -- a refresh token is good for one use.</span>
+<span class="k">export function</span> refresh(token: string) {
+  <span class="k">const</span> claims = verify(token);
+  revoke(token);
+  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), … };
+}</code></pre>
+      <div class="side"><pre><code><span class="h">pkg/auth/session.ts</span>
+<span class="dim">3 notes</span>
+
+<span class="t">Rotating refresh tokens</span>  <span class="dim">Decision, accepted</span>
+  <span class="dim">cited at session.ts:4</span>
+  Refresh tokens rotate on every use; access
+  tokens last 15 minutes.
+
+<span class="t">Auth</span>  <span class="dim">Spec, accepted</span>
+  <span class="dim">anchor pkg/auth/**; spec of Rotating refresh tokens</span>
+  Who can sign in, how, and for how long.
+
+<span class="t">Auth package</span>
+  <span class="dim">CONTEXT.md in pkg/auth/</span>
+  Owns session issuance and validation. Never
+  import from pkg/billing.</code></pre></div>
+    </div>
+    <div class="modeline"><span>session.ts   (TypeScript <b>lore:3</b>)   L4</span><span>*lore*</span></div>
+    <div class="echo"><b>Rotating refresh tokens:</b> Refresh tokens rotate on every use; access tokens last 15 minutes.</div>
+  </div>
+  <p class="caption wide">The sidebar text is what <code>lore-sidebar-mode</code> renders for this file. The mode line counts the notes, and eldoc shows the summary of the note under point.</p>
+
+  <h2 id="setup">Set up</h2>
+  <p>The package is <a href="https://github.com/apisandipas/lore/tree/main/editors/emacs"><code>editors/emacs/lore.el</code></a>, built by the flake as <code>packages.&lt;system&gt;.emacs</code>. It needs Emacs 29 or later and <code>lore</code> on <code>exec-path</code>.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">init.el</span><button class="copy" type="button">Copy</button></div>
+<pre><code>(<span class="k">require</span> 'lore)
+(global-lore-mode 1)
+(keymap-global-set <span class="s">"C-c l"</span> lore-command-map)</code></pre>
+  </div>
+  <p><code>global-lore-mode</code> turns <code>lore-mode</code> on only in files under a directory with <code>.lore/</code>, so it costs nothing elsewhere.</p>
+  <aside class="sidenote">Using evil with a leader key? Bind the commands under it. The letters on <code>lore-command-map</code> are a good guide.</aside>
+
+  <h2 id="sidebar">The sidebar</h2>
+  <p><code>M-x lore-sidebar-mode</code> opens a side window listing the notes for the selected file, in <code>lore context</code> order: the title, which is a button that opens the note, its type and status, why it matched, and its summary. Set <code>lore-sidebar-full</code> to see bodies too.</p>
+  <p>It follows you. Switch windows or buffers and it refreshes after a moment of idle; save any file and it fetches again, since a saved note can change what governs anything.</p>
+
+  <h2 id="follow">Follow citations and links</h2>
+  <p><kbd>M-.</kbd> on a citation in code, <code>lore:decision/0002</code>, or on a link in a note, <code>[[spec/auth]]</code>, <code>[[spec/auth][the spec]]</code> or <code>[[file:prd.org][the PRD]]</code>, opens the note. <kbd>M-?</kbd> lists everything pointing at it: the code citing it and the notes linking to it.</p>
+  <p>Off a citation or link, <kbd>M-.</kbd> falls through to your usual backend, so it sits alongside eglot or lsp-mode without taking over.</p>
+
+  <h2 id="writing">While you write</h2>
+  <ul>
+    <li><b>Eldoc</b> shows the title and summary of the note named at point.</li>
+    <li><b>Completion</b> after <code>[[</code> or <code>lore:</code> offers every note’s name, annotated with its title. Type the filename and it finds the name: <code>bil</code> completes to <code>spec/billing</code>.</li>
+    <li><b>Flymake</b> reports <code>lore check</code> problems for the file at their lines: a broken link, a bad status, a citation of a superseded decision.</li>
+    <li><b>The mode line</b> shows <code>lore:N</code>, the number of notes governing the file, once lore has answered. lore runs in the background and never blocks typing.</li>
+  </ul>
+
+  <h2 id="commands">Commands</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Key</th><th>Command</th><th>Does</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>n</kbd></td><td><code>lore-next</code></td><td><code>lore next</code>, with repo paths as buttons.</td></tr>
+        <tr><td><kbd>s</kbd></td><td><code>lore-show</code></td><td>Show a note, chosen with completion.</td></tr>
+        <tr><td><kbd>c</kbd></td><td><code>lore-check</code></td><td>A compilation buffer, so <code>next-error</code> walks the problems.</td></tr>
+        <tr><td><kbd>N</kbd></td><td><code>lore-new</code></td><td>Pick a type from the schema, give a title, and visit the new note.</td></tr>
+        <tr><td><kbd>t</kbd></td><td><code>lore-tick</code></td><td>Save, tick the next item, revert, and name the next one.</td></tr>
+        <tr><td><kbd>f</kbd></td><td><code>lore-freeze</code></td><td>Save, freeze the effort, revert.</td></tr>
+        <tr><td><kbd>l</kbd></td><td><code>lore-sidebar-mode</code></td><td>Toggle the sidebar.</td></tr>
+        <tr><td><kbd>g</kbd></td><td><code>lore-refresh</code></td><td>Refresh the sidebar now.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The keys are on <code>lore-command-map</code>, under whatever prefix you bind it to.</p>
+
+  <h2 id="org">Org</h2>
+  <p>In Org, <code>lore:</code> is a link type: <code>[[lore:decision/0002][rotating tokens]]</code> opens the note with <kbd>C-c C-o</kbd>, from any Org file inside the repo.</p>
+
+  <h2 id="limits">Limits</h2>
+  <p>lore reads files from disk, so the sidebar and Flymake reflect the file as last saved. <code>lore.el</code> keeps no index of its own; beyond a few seconds of cached note names for completion, every answer comes from lore. Everything it uses is <code>lore … --json</code>, which is also the interface to build another editor’s integration on.</p>
+  <p><code>bun run test:emacs</code> runs its tests in a batch Emacs against a real repo, and <code>nix flake check</code> runs them too.</p>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="agents.html"><small>Back</small>Agents</a>
+    <a class="n" href="configuration.html"><small>Next</small>Configuration</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

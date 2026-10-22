@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide · lore</title>
+<meta name="description" content="Install lore, set up a repo, write your first notes, and take one feature from spec to ship.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Guide</h2>
+      <ol>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#init">Set up a repo</a></li>
+        <li><a href="#first-notes">Your first notes</a></li>
+        <li><a href="#ask">Ask what governs a file</a></li>
+        <li><a href="#feature">A feature, spec to ship</a></li>
+        <li><a href="#drift">When the spec changes</a></li>
+        <li><a href="#check">Keep it honest</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Guide</p>
+  <h1>From nothing to a shipped feature</h1>
+  <p class="lede">This guide sets up lore in a small app, writes the notes it already needs, and takes one feature, due dates on tasks, through the whole flow. Every block of output below is what lore printed.</p>
+
+  <h2 id="install">Install</h2>
+  <p>lore is a Nix flake. It runs on <a href="https://bun.sh">Bun</a> and uses <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a> to find citations; the package brings both.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">try it without installing</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">nix run github:apisandipas/lore -- help</span></code></pre>
+  </div>
+  <p>To keep it, add the flake as an input and install <code>lore.packages.${system}.default</code>. For work on lore itself, <code>nix develop</code> gives you <code>bun</code> and <code>rg</code>, and <code>bun src/main.ts &lt;command&gt;</code> runs from source.</p>
+  <aside class="sidenote">lore pins nothing to a server. It is one binary that reads your working tree, so the same version on two machines gives the same answers.</aside>
+
+  <h2 id="init">Set up a repo</h2>
+  <p>Run <code>lore init</code> at the root of a git repo. It writes the schema that says which kinds of note exist, a template for each, and a <code>WORKFLOW.md</code> that the agent skills read first. It never overwrites a file that is already there.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore init</span>
+<span class="out">created .lore/schema.yml
+created .lore/WORKFLOW.md
+created .lore/templates/Spec.md
+created .lore/templates/Decision.md
+created .lore/templates/Effort.md
+
+skills: found in ~/.claude/skills, ~/.agents/skills
+
+Read .lore/WORKFLOW.md, then start a spec with lore-spec.</span></code></pre>
+  </div>
+  <p>If the <code>lore-*</code> skills are missing, <code>init</code> says how to add them:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">npx skills add apisandipas/lore</span></code></pre>
+  </div>
+
+  <h2 id="first-notes">Your first notes</h2>
+  <p>Start with what a newcomer would get wrong. Our app has an auth package, and a rule about money. A decision is the right note for a rule with a reason: <code>lore new</code> numbers it and fills in the template.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore new Decision "Money is integer cents"</span>
+<span class="out">created docs/decisions/0003-money-is-integer-cents.md</span></code></pre>
+  </div>
+  <p>Fill it in. The <code>anchors</code> field claims the code it governs, and the <code>## Decision</code> section becomes the summary lore shows.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">docs/decisions/0003-money-is-integer-cents.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">---
+type: Decision
+status: accepted
+anchors: [pkg/billing/**]
+---</span>
+# Money is integer cents
+
+## Context
+Floating-point dollars round differently on the server and in the browser.
+
+## Decision
+Money is a whole number of cents everywhere, converted to dollars only for display.
+
+## Consequences
+Every price field is an integer, and its name ends in `Cents`.</code></pre>
+  </div>
+  <p>Code that follows a decision can say so. A comment with <code>lore:</code> and the note’s name is a <em>citation</em>; lore finds it, and <code>lore check</code> tells you if the note it names is ever retired.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">pkg/billing/charge.ts</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="c">// Money is integer cents: lore:decision/0003</span>
+<span class="k">export function</span> charge(customerId: string, amountCents: number) {
+  <span class="k">if</span> (!Number.isInteger(amountCents)) <span class="k">throw new</span> Error(<span class="s">"amountCents must be an integer"</span>);
+  <span class="k">return</span> gateway.charge(customerId, amountCents);
+}</code></pre>
+  </div>
+  <p>A directory with rules of its own gets a <code>CONTEXT.md</code>. It needs no frontmatter; its first paragraph is the summary.</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">pkg/auth/CONTEXT.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code># Auth package
+
+Owns session issuance and validation. Never import from pkg/billing.</code></pre>
+  </div>
+
+  <h2 id="ask">Ask what governs a file</h2>
+  <p>Before you, or an agent, edit a file, ask lore about it. It reports every note that applies and why: a citation, an anchor, a <code>CONTEXT.md</code> above it, or a note one link away from one of those.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore context pkg/billing/charge.ts</span>
+<span class="out">pkg/billing/charge.ts: 1 note
+
+<span class="t">Money is integer cents</span>  (Decision, accepted)
+  docs/decisions/0003-money-is-integer-cents.md
+  <span class="dim">matched: cited at charge.ts:1; anchor pkg/billing/**</span>
+  Money is a whole number of cents everywhere, converted to dollars only for display.</span></code></pre>
+  </div>
+  <p><code>--full</code> adds each note’s body, for when a summary is not enough. Add <code>--json</code> to any command for a machine-readable version.</p>
+
+  <h2 id="feature">A feature, spec to ship</h2>
+  <p>Now something new: tasks should have due dates. lore’s flow has four steps, and <code>lore next</code> always knows which one you are on. With nothing in progress, it says so:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore next</span>
+<span class="out">nothing in progress; start a spec with lore-spec</span></code></pre>
+  </div>
+
+  <h3 id="spec">1. Say what you want</h3>
+  <p>With an agent, you say “use lore-spec, I want due dates on tasks”, and it interviews you. By hand, it is <code>lore new Spec "Due dates"</code> and an editor. Either way you end up with statements someone could test, and a list of what you are not doing:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">docs/specs/due-dates.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">---
+type: Spec
+status: draft
+anchors: [src/tasks/**]
+---</span>
+# Due dates
+
+A task can have a day it is due, and overdue tasks stand out.
+
+## Behaviour
+- A task may have a due date (a day, no time).
+- Overdue tasks show in red at the top of the list.
+
+## Out of scope
+- Reminders or emails.</code></pre>
+  </div>
+  <p>When it reads right, accept it. <code>lore set</code> checks the value against the schema before writing it.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore set spec/due-dates status=accepted</span>
+<span class="out">updated docs/specs/due-dates.md
+  status: accepted</span>
+<span class="cmd">lore next</span>
+<span class="out">next: <span class="hl">lore-plan</span> docs/specs/due-dates.md
+  <span class="t">Due dates</span>  (Spec, accepted)
+  accepted spec with no effort</span></code></pre>
+  </div>
+
+  <h3 id="plan">2. Plan the work</h3>
+  <p>An <em>effort</em> is the plan: an approach, and a checklist of tasks small enough to finish and test in one sitting. <code>--link</code> fills in the spec it is planned against.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore new Effort "Due dates" --link specs=spec/due-dates</span>
+<span class="out">created docs/efforts/due-dates.md</span></code></pre>
+  </div>
+  <div class="term file">
+    <div class="term-bar"><span class="where">docs/efforts/due-dates.md</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="fm">---
+type: Effort
+status: planned
+specs: ["[[spec/due-dates]]"]
+---</span>
+# Due dates
+
+## Approach
+Store the day as a real date column, sort in the query, and colour in the list view.
+
+## Tasks
+- [ ] Add a due_date column to tasks, with a migration
+- [ ] Show a date picker when editing a task
+- [ ] Sort overdue tasks first and colour them red</code></pre>
+  </div>
+  <aside class="sidenote">The effort shares its spec’s filename, and that’s fine: lore names notes by type, so they are <code>spec/due-dates</code> and <code>effort/due-dates</code>. See <a href="concepts.html#names">Names</a>.</aside>
+  <p>Once you agree with the plan, freeze it. lore records the version of each spec the plan was made against, and the effort is ready to build.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore freeze effort/due-dates</span>
+<span class="out">froze docs/efforts/due-dates.md against:
+  docs/specs/due-dates.md 34dd79dc3cec</span>
+<span class="cmd">lore next</span>
+<span class="out">next: <span class="hl">lore-build</span> docs/efforts/due-dates.md
+  <span class="t">Due dates</span>  (Effort, planned)
+  0 of 3 done
+  next item: Add a due_date column to tasks, with a migration</span></code></pre>
+  </div>
+
+  <h3 id="build">3. Build it, one task at a time</h3>
+  <p>For each task: read the notes for every file you will touch, do the task, run the tests, tick the box. The next task is always the first open one, so you can stop at any point and <code>lore next</code> will know where you were tomorrow.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore set effort/due-dates status=active</span>
+<span class="out">updated docs/efforts/due-dates.md
+  status: active</span>
+<span class="cmd">lore context src/tasks/model.ts</span>
+<span class="out">src/tasks/model.ts: 1 note
+
+<span class="t">Due dates</span>  (Spec, accepted)
+  docs/specs/due-dates.md
+  <span class="dim">matched: anchor src/tasks/**</span>
+  A task can have a day it is due, and overdue tasks stand out.</span>
+<span class="cmd">lore tick effort/due-dates</span>
+<span class="out">ticked docs/efforts/due-dates.md: Add a due_date column to tasks, with a migration
+next: Show a date picker when editing a task  (1 of 3 done)</span></code></pre>
+  </div>
+  <p>A choice someone might later undo deserves a decision. If the agent stores due dates as real dates because sorting text dates breaks, <code>lore new Decision "Store due dates as dates"</code> keeps that reason next to the code from now on.</p>
+
+  <h3 id="ship">4. Ship it</h3>
+  <p>When every box is ticked, <code>lore next</code> names <code>lore-ship</code>. Shipping holds the work against each statement in the spec, makes sure <code>lore check</code> and the tests pass, brings the notes up to date, and sets the effort to <code>done</code>.</p>
+
+  <h2 id="drift">When the spec changes</h2>
+  <p>Halfway through, you decide due dates can have a time after all. Edit the spec. Because the plan was frozen, lore notices the plan is now out of date, and stops sending you to build from it:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore check</span>
+<span class="out">docs/efforts/due-dates.md:5: docs/specs/due-dates.md changed since this was frozen; review the plan, then run lore freeze effort/due-dates
+
+7 notes, 2 citations: 1 problem</span>
+<span class="cmd">lore next</span>
+<span class="out">next: <span class="hl">lore-plan</span> docs/efforts/due-dates.md
+  <span class="t">Due dates</span>  (Effort, active)
+  docs/specs/due-dates.md changed since it was planned</span></code></pre>
+  </div>
+  <p>Revise the tasks, freeze again, and carry on. Once an effort is <code>done</code>, its frozen versions are history and <code>check</code> stops reporting them.</p>
+
+  <h2 id="check">Keep it honest</h2>
+  <p><code>lore check</code> is the linter for your notes. Put it in CI: it exits 1 when something is wrong.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore check</span>
+<span class="out">docs/specs/search.md:3: 'status' is 'finished'; expected one of draft, accepted, retired
+docs/specs/search.md:7: link 'spec/indexing' matches no note
+pkg/billing/charge.ts:6: citation 'lore:decision/0009' matches no note
+
+8 notes, 3 citations: 3 problems</span></code></pre>
+  </div>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="index.html"><small>Back</small>Home</a>
+    <a class="n" href="concepts.html"><small>Next</small>Concepts</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

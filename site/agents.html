@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agents · lore</title>
+<meta name="description" content="The lore-* workflow skills, and the Claude Code hook that hands an agent its notes before it edits.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <aside class="toc">
+    <nav aria-label="On this page">
+      <h2>Agents</h2>
+      <ol>
+        <li><a href="#skills">The skills</a></li>
+        <li><a href="#talking">What you actually say</a></li>
+        <li><a href="#small">Small work</a></li>
+        <li><a href="#hook">The Claude Code hook</a></li>
+        <li><a href="#sessions">Once per session</a></li>
+        <li><a href="#install">Install the hook</a></li>
+        <li><a href="#proof">Does it help?</a></li>
+      </ol>
+    </nav>
+  </aside>
+
+  <p class="kicker">Agents</p>
+  <h1>An agent that reads the notes first</h1>
+  <p class="lede">The CLI enforces the mechanics. The process, which step comes next and how to do it well, lives in agent skills you can edit per project. A hook makes sure the agent sees the notes for a file before it touches it, whether or not a skill is loaded.</p>
+
+  <h2 id="skills">The skills</h2>
+  <p>Six skills ship in lore’s <a href="https://github.com/apisandipas/lore/tree/main/skills"><code>skills/</code></a> directory. Install them per project, or for every project with <code>-g</code>:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">npx skills add apisandipas/lore</span></code></pre>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Skill</th><th>Step</th></tr></thead>
+      <tbody>
+        <tr><td><code>lore-spec</code></td><td>Interview the user and write or revise a spec, until they accept it.</td></tr>
+        <tr><td><code>lore-plan</code></td><td>Turn an accepted spec into an effort with a task checklist, and freeze it. Re-plan when the spec drifts.</td></tr>
+        <tr><td><code>lore-build</code></td><td>Work the first open task, running <code>lore context</code> before every edit.</td></tr>
+        <tr><td><code>lore-ship</code></td><td>Check the work against the spec, bring the notes up to date, mark the effort done.</td></tr>
+        <tr><td><code>lore-decide</code></td><td>Record a decision, or supersede one, at any step.</td></tr>
+        <tr><td><code>lore-next</code></td><td>Run <code>lore next</code> and hand off to the skill it names.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Each skill reads <code>.lore/WORKFLOW.md</code> first, so a project can change the flow, and ends with one line naming the next step:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">the last line of a lore-plan session</span></div>
+<pre><code><span class="out">Next: lore-build docs/efforts/due-dates.md (Add a due_date column to tasks, with a migration)</span></code></pre>
+  </div>
+
+  <h2 id="talking">What you actually say</h2>
+  <p>The agent does the writing. Your part is mostly answering questions and saying yes or no.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>You say</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td>“use lore-spec, I want X”</td><td>The agent interviews you and writes down what you want.</td></tr>
+        <tr><td>“go ahead”</td><td>The agent does the step it just named.</td></tr>
+        <tr><td>“use lore-next”, or “where was I?”</td><td>The agent reads the notes and tells you what is next.</td></tr>
+        <tr><td>“yes”, or “no, change Y”</td><td>You approve the spec and the plan.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>After the first message, it is mostly “go ahead”. In a fresh session, ask for <code>lore-next</code>.</p>
+
+  <h2 id="small">Small work</h2>
+  <p>A bug fix or a rename skips the flow: no spec, no effort, just <code>lore context</code> before each edit and <code>lore check</code> after. The Size section of <code>.lore/WORKFLOW.md</code> says where the line falls, and a project can move it.</p>
+
+  <h2 id="hook">The Claude Code hook</h2>
+  <p>The skills tell the agent to run <code>lore context</code> before every edit. The hook makes it happen anyway. <a href="https://github.com/apisandipas/lore/blob/main/hooks/claude-code.sh"><code>hooks/claude-code.sh</code></a> runs on each file the agent reads or edits, and adds the notes that govern it to the agent’s context:</p>
+  <ul>
+    <li><b>Before the agent writes.</b> It runs on <code>Read</code> as well as <code>Edit</code> and <code>Write</code>. Notes handed over at an edit arrive after the edit is made, so the agent writes the code once and then fixes it.</li>
+    <li><b>Once per session.</b> A note is shown again only if it changes, or after the conversation is compacted.</li>
+    <li><b>Silent otherwise.</b> Outside a repo with <code>.lore/</code>, or when <code>lore</code> or <code>jq</code> is missing, it does nothing.</li>
+  </ul>
+  <aside class="sidenote">The hook is a 36-line shell script. Read it before you install it; it is short on purpose.</aside>
+
+  <h2 id="sessions">Once per session</h2>
+  <p>The hook calls <code>lore context --session</code> with the agent’s session id. The first read of a file gets its notes; the second gets nothing, because nothing is new:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore context --session demo pkg/auth/session.ts</span>
+<span class="out">pkg/auth/session.ts: 3 notes
+
+<span class="t">Rotating refresh tokens</span>  (Decision, accepted)
+  <span class="dim">…</span></span>
+<span class="cmd">lore context --session demo pkg/auth/session.ts</span>
+<span class="out"><span class="c">(nothing: this session has seen all three)</span></span></code></pre>
+  </div>
+  <p>The record of what a session has seen lives in the temp directory, not the repo. When Claude Code compacts the conversation, the hook runs <code>--forget</code>, and the agent is shown its notes again.</p>
+
+  <h2 id="install">Install the hook</h2>
+  <p>It needs <code>lore</code> and <code>jq</code> on <code>PATH</code>. <b>In one project</b>, so everyone who clones it gets the hook:</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">mkdir -p .claude/hooks</span>
+<span class="cmd">curl -fsSL https://raw.githubusercontent.com/apisandipas/lore/main/hooks/claude-code.sh -o .claude/hooks/lore-context.sh</span>
+<span class="cmd">chmod +x .claude/hooks/lore-context.sh</span></code></pre>
+  </div>
+  <p>Then add this to <code>.claude/settings.json</code>, merging it with any <code>hooks</code> already there, and commit both files:</p>
+  <div class="term file">
+    <div class="term-bar"><span class="where">.claude/settings.json</span><button class="copy" type="button">Copy</button></div>
+<pre><code>{
+  <span class="s">"hooks"</span>: {
+    <span class="s">"PreToolUse"</span>: [
+      { <span class="s">"matcher"</span>: <span class="s">"Read|Edit|MultiEdit|Write"</span>, <span class="s">"hooks"</span>: [{ <span class="s">"type"</span>: <span class="s">"command"</span>, <span class="s">"command"</span>: <span class="s">"\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lore-context.sh"</span> }] }
+    ],
+    <span class="s">"SessionStart"</span>: [
+      { <span class="s">"matcher"</span>: <span class="s">"compact"</span>, <span class="s">"hooks"</span>: [{ <span class="s">"type"</span>: <span class="s">"command"</span>, <span class="s">"command"</span>: <span class="s">"\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lore-context.sh"</span> }] }
+    ]
+  }
+}</code></pre>
+  </div>
+  <p><b>For every repo you work in</b>, put the script in <code>~/.claude/hooks/lore-context.sh</code> and add the same <code>hooks</code> to <code>~/.claude/settings.json</code>, with that path as the command. It stays silent in repos without <code>.lore/</code>.</p>
+  <div class="callout">
+    <p><b>Check it.</b> Start a new Claude Code session, since hooks are read at startup, and run <code>/hooks</code>: the script should be listed under <code>PreToolUse</code> and <code>SessionStart</code>. Then ask the agent to read a file that has notes; <code>lore context &lt;file&gt;</code> shows what it should have been given.</p>
+  </div>
+
+  <h2 id="proof">Does it help?</h2>
+  <p>We gave real Claude Code sessions a task in a repo whose only clue to a money rule is a decision anchored to the code, and checked whether the agent’s first edit followed it. Three runs of each setup:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Setup</th><th>Followed the decision in its edit</th></tr></thead>
+      <tbody>
+        <tr><td>No hook</td><td>0 of 3</td></tr>
+        <tr><td>Hook on <code>Edit</code> only</td><td>0 of 3; it fixed the code in a second edit</td></tr>
+        <tr><td>Hook on <code>Read</code> and <code>Edit</code></td><td><b>3 of 3</b>, first time</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Three runs is a small sample. <code>test/agent/hook-trial.sh</code> repeats the with-and-without comparison so you can run more, for example <code>test/agent/hook-trial.sh 10</code>; each run is a real session and costs about $0.20.</p>
+
+  <nav class="prev-next" aria-label="Pages">
+    <a href="commands.html"><small>Back</small>Commands</a>
+    <a class="n" href="emacs.html"><small>Next</small>Emacs</a>
+  </nav>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

@@ -4,6 +4,7 @@ ignore:
   - editors/emacs/*-test.el
   - skills/**
   - README.md
+  - site/**
 types:
   Spec:
     dir: docs/specs

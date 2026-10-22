@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lore · typed project notes linked to code</title>
+<meta name="description" content="lore keeps specs, decisions and module notes as plain Markdown or Org in your repo, and tells you, or your agent, which ones govern a file before it is edited.">
+<script>try{const t=localStorage.getItem("lore-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="index.html">lore<span class="colon">:</span></a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="commands.html">Commands</a>
+      <a href="agents.html">Agents</a>
+      <a href="emacs.html">Emacs</a>
+      <a href="configuration.html">Configuration</a>
+    </nav>
+    <div class="masthead-end">
+      <span class="version">0.1.0-alpha.2</span>
+      <a href="https://github.com/apisandipas/lore">GitHub</a>
+      <button class="theme-toggle" type="button">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="page home">
+  <section class="hero">
+    <p class="kicker">Typed project notes, linked to code</p>
+    <h1>The notes your code <em>answers&nbsp;to</em>.</h1>
+    <p class="lede">Specs, decisions and module notes live as plain Markdown or Org in your repo. lore knows which of them govern each file, and hands them to you, or to your agent, before the edit is made.</p>
+    <div class="install">
+      <div class="term"><pre><code><span class="cmd">nix run github:apisandipas/lore -- help</span></code></pre><button class="copy" type="button">Copy</button></div>
+      <a class="button" href="guide.html">Get started</a>
+    </div>
+  </section>
+
+  <figure class="annotated wide">
+    <div class="term file">
+      <div class="term-bar"><span class="where"><span class="src" data-to="n-auth n-ctx">pkg/auth/</span>session.ts</span></div>
+      <pre class="lines"><code><span class="l"><span class="k">import</span> { sign, verify } <span class="k">from</span> <span class="s">"./jwt"</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="k">const</span> ACCESS_TTL = 15 * 60;</span>
+<span class="l"><span class="c">// see <span class="src" data-to="n-0002">lore:decision/0002</span> -- a refresh token is good for one use.</span></span>
+<span class="l"><span class="k">export function</span> refresh(token: string) {</span>
+<span class="l">  <span class="k">const</span> claims = verify(token);</span>
+<span class="l">  revoke(token);</span>
+<span class="l">  <span class="k">return</span> { access: sign(claims, ACCESS_TTL), refresh: issueRefresh(claims) };</span>
+<span class="l">}</span></code></pre>
+    </div>
+    <div class="notes">
+      <article class="note-card" id="n-0002">
+        <div class="meta"><span><span class="marker">1</span>Decision 0002</span><span class="stamp accepted">accepted</span></div>
+        <h4>Rotating refresh tokens</h4>
+        <p>Refresh tokens rotate on every use; access tokens last 15 minutes.</p>
+        <div class="old">supersedes <s>0001 Hard expiry</s></div>
+        <div class="why">cited at session.ts:4</div>
+      </article>
+      <article class="note-card" id="n-auth">
+        <div class="meta"><span><span class="marker">2</span>Spec</span><span class="stamp accepted">accepted</span></div>
+        <h4>Auth</h4>
+        <p>Who can sign in, how, and for how long.</p>
+        <div class="why">anchor pkg/auth/**</div>
+      </article>
+      <article class="note-card" id="n-ctx">
+        <div class="meta"><span><span class="marker">3</span>CONTEXT.md</span></div>
+        <h4>Auth package</h4>
+        <p>Owns session issuance and validation. Never import from pkg/billing.</p>
+        <div class="why">CONTEXT.md in pkg/auth/</div>
+      </article>
+    </div>
+  </figure>
+  <p class="caption wide">The three notes lore finds for <code>pkg/auth/session.ts</code>: a decision the code cites, a spec whose anchor claims the directory, and the directory’s own <code>CONTEXT.md</code>. Hover a highlight to follow it.</p>
+
+  <h2 id="ask">Ask from the terminal</h2>
+  <p>The same answer, in the form an agent reads. The decision in force comes first, with one line of the history it replaced, so nobody “fixes” the code back to the old rule.</p>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore context pkg/auth/session.ts</span>
+<span class="out">pkg/auth/session.ts: 3 notes
+
+<span class="t">Rotating refresh tokens</span>  (Decision, accepted)
+  docs/decisions/0002-rotating-refresh-tokens.md
+  <span class="dim">matched: cited at session.ts:4</span>
+  Refresh tokens rotate on every use; access tokens last 15 minutes.
+  <span class="dim">supersedes decision/0001-hard-expiry: Every session hard-expires after 15 minutes.</span>
+
+<span class="t">Auth</span>  (Spec, accepted)
+  docs/specs/auth.md
+  <span class="dim">matched: anchor pkg/auth/**; spec of Rotating refresh tokens</span>
+  Who can sign in, how, and for how long.
+
+<span class="t">Auth package</span>
+  pkg/auth/CONTEXT.md
+  <span class="dim">matched: CONTEXT.md in pkg/auth/</span>
+  Owns session issuance and validation. Never import from pkg/billing.</span></code></pre>
+  </div>
+
+  <div class="facts wide">
+    <div><b>No index</b><span>No database, no embeddings, no network. Every command reads the working tree, so an answer is never stale.</span></div>
+    <div><b>Plain files</b><span>Notes are Markdown or Org in <code>docs/</code>, reviewed in the same pull request as the code they govern.</span></div>
+    <div><b>Checked like code</b><span><code>lore check</code> exits 1 on broken links, citations of retired decisions, and specs that changed under a plan.</span></div>
+  </div>
+
+  <h2 id="flow">From spec to ship</h2>
+  <p>lore ships with agent skills for a small, strict flow. Each step is one skill, and <code>lore next</code> reads the notes to say which one comes next, so a session can stop anywhere and pick up tomorrow.</p>
+  <ol class="flow wide">
+    <li><b>lore-spec</b><span>Interview the user and write down what they want, until they accept it.</span></li>
+    <li><b>lore-plan</b><span>Turn the spec into an effort with a task checklist, frozen against that version.</span></li>
+    <li><b>lore-build</b><span>Work the first open task, reading the notes for every file before editing it.</span></li>
+    <li><b>lore-ship</b><span>Hold the work against the spec, update the notes, mark the effort done.</span></li>
+  </ol>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore next</span>
+<span class="out">next: <span class="hl">lore-build</span> docs/efforts/due-dates.md
+  <span class="t">Due dates</span>  (Effort, active)
+  1 of 3 done
+  next item: Show a date picker when editing a task</span></code></pre>
+  </div>
+  <aside class="sidenote">If the spec is edited after the plan was frozen, <code>lore next</code> stops pointing at <b>lore-build</b> and sends you back to <b>lore-plan</b>.</aside>
+
+  <h2 id="agents">Before every edit, not after</h2>
+  <p>For Claude Code, a hook runs <code>lore context</code> on each file the agent reads or edits and hands it the notes that govern it, once per session. In trials with real sessions, the agent followed a decision three times out of three with the hook, and none out of three without it.</p>
+  <p><a href="agents.html">The skills and the hook</a> · <a href="emacs.html">lore in Emacs</a></p>
+
+  <h2 id="read-on">Read on</h2>
+  <div class="next-pages wide">
+    <a href="guide.html"><b>Guide</b><span>Install, set up a repo, and take one feature from spec to ship.</span></a>
+    <a href="concepts.html"><b>Concepts</b><span>Notes, links, citations, anchors, superseding and freezing.</span></a>
+    <a href="commands.html"><b>Commands</b><span>Every command, its options, and what it prints.</span></a>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <span>lore is MIT licensed. Its own design decisions are lore notes in <a href="https://github.com/apisandipas/lore/tree/main/docs/decisions">docs/decisions</a>.</span>
+    <span>Every example here is real output from <code>lore</code> 0.1.0-alpha.2.</span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
