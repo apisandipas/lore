@@ -16,6 +16,6 @@ One module turns field assignments from the command line into the values `lore n
 
 ## Tasks
 
-- [ ] Add `src/change.ts` with `planChange`, tested directly: common and type fields, an unknown field, `type` not in the schema, one value vs a list, `+=` on a link field given two names for one note, Org `[[a]] [[b]]` merging, a bad link
+- [x] Add `src/change.ts` with `planChange`, tested directly: common and type fields, an unknown field, `type` not in the schema, one value vs a list, `+=` on a link field given two names for one note, Org `[[a]] [[b]]` merging, a bad link
 - [ ] `new` and `set` build their fields through `planChange`; `linkTo` leaves shared.ts and `toList` leaves set.ts; their output and messages are unchanged, with a test that `new --link specs=auth --link specs=spec/auth` writes one link
 - [ ] CONTEXT.md describes `src/change.ts`; `lore check` and the tests pass
