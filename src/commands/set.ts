@@ -1,4 +1,5 @@
-import { link, render, updateNote, type Fields } from "../edit";
+import { link, updateNote, type Fields } from "../edit";
+import { render } from "../syntax/markdown";
 import { fieldProblems } from "../validate";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets } from "../parse";

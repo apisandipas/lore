@@ -65,6 +65,21 @@ describe("check", () => {
       }),
     ).toEqual(["docs/efforts/x.md:3: 'owner' takes one value, not a list"]);
   });
+
+  test("reports a field on its own line after a multi-line list, in Markdown and Org", () => {
+    expect(
+      problems({
+        "docs/specs/s.md": "---\nstatus: draft\n---\n# S\n",
+        "docs/efforts/x.md": '---\nspecs:\n  - "[[s]]"\nanchors:\n- src/a.ts\n- src/b.ts\nstatus: bogus\n---\n# X\n',
+        "docs/efforts/y.org": "#+specs: [[s]]\n\n#+STATUS: bogus\n* Y\n",
+      }),
+    ).toEqual([
+      "docs/efforts/x.md:4: anchor 'src/a.ts' matches no files",
+      "docs/efforts/x.md:4: anchor 'src/b.ts' matches no files",
+      "docs/efforts/x.md:7: 'status' is 'bogus'; expected one of planned, active, done",
+      "docs/efforts/y.org:3: 'status' is 'bogus'; expected one of planned, active, done",
+    ]);
+  });
 });
 
 describe("failures", () => {

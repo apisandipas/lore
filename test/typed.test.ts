@@ -3,7 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { run } from "../src/main";
-import { setFields } from "../src/edit";
+import { markdown } from "../src/syntax/markdown";
 import { runInit, SKILLS } from "../src/commands/init";
 
 const fixture = join(import.meta.dir, "fixtures", "typed");
@@ -250,7 +250,7 @@ describe("freeze", () => {
     expect(c.read("docs/efforts/reset.md")).toMatch(/\nfrozen:\n {2}docs\/specs\/auth\.md: [0-9a-f]{12}\n---\n/);
 
     const spec = join(c.dir, "docs/specs/auth.md");
-    writeFileSync(spec, setFields(readFileSync(spec, "utf8"), { status: "retired" }));
+    writeFileSync(spec, markdown.setField(readFileSync(spec, "utf8"), "status", "retired"));
     expect((await c.lore("check")).out).not.toContain("changed since");
 
     writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
@@ -267,7 +267,7 @@ describe("freeze", () => {
     await c.lore("freeze", "reset");
     const [spec, effort] = [join(c.dir, "docs/specs/auth.md"), join(c.dir, "docs/efforts/reset.md")];
     writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
-    writeFileSync(effort, setFields(readFileSync(effort, "utf8"), { status: "done" }));
+    writeFileSync(effort, markdown.setField(readFileSync(effort, "utf8"), "status", "done"));
     expect((await c.lore("check")).out).not.toContain("reset.md:");
 
     // The broken specs link is still reported; the frozen entry is not.
@@ -275,37 +275,12 @@ describe("freeze", () => {
     expect((await c.lore("check")).out).not.toContain("no longer exists");
 
     writeFileSync(spec, "---\ntype: Spec\nstatus: accepted\n---\n# Auth\n\nChanged.\n");
-    writeFileSync(effort, setFields(readFileSync(effort, "utf8"), { status: "active" }));
+    writeFileSync(effort, markdown.setField(readFileSync(effort, "utf8"), "status", "active"));
     expect((await c.lore("check")).out).toContain("docs/efforts/reset.md:5: docs/specs/auth.md changed since this was frozen");
   });
 
   test("show reports checklist progress", async () => {
     expect((await lore("show", "reset")).out).toContain("Checklist: 1 of 3 done");
-  });
-});
-
-describe("setFields", () => {
-  test("replaces a key and its block value, keeping other lines", () => {
-    const text = "---\na: 1\nlist:\n- x\n- y\nb: 2\n---\nbody";
-    expect(setFields(text, { list: ["z"] })).toBe("---\na: 1\nlist: [z]\nb: 2\n---\nbody");
-    expect(setFields(text, { c: "three" })).toBe("---\na: 1\nlist:\n- x\n- y\nb: 2\nc: three\n---\nbody");
-    expect(setFields(text, { list: null, a: null })).toBe("---\nb: 2\n---\nbody");
-    expect(setFields("body", { a: "x" })).toBe("---\na: x\n---\nbody");
-  });
-
-  test("quotes any value YAML would not read back as the same string", () => {
-    const values = ["123456789012", "12e456789012", "true", "null", "~", "a: b", "a #b", "[[x]]", " pad", "plain", "0007", "-x", "a,b"];
-    const text = setFields("body", {
-      one: "123456789012",
-      many: values,
-      map: Object.fromEntries(values.map((v, i) => [`docs/${i}.md`, v])),
-    });
-    const fm = Bun.YAML.parse(text.split("---")[1]!) as Record<string, unknown>;
-    expect(fm.one).toBe("123456789012");
-    expect(fm.many).toEqual(values);
-    expect(Object.values(fm.map as object)).toEqual(values);
-    expect(text).toContain("plain");
-    expect(text).not.toContain('"plain"');
   });
 });
 
@@ -333,7 +308,7 @@ describe("next", () => {
     expect((await c.lore("next")).out).toContain("docs/specs/auth.md changed since it was planned");
 
     // Shipped over a changed spec: the change still needs a plan.
-    writeFileSync(effort, setFields(readFileSync(effort, "utf8"), { status: "done" }));
+    writeFileSync(effort, markdown.setField(readFileSync(effort, "utf8"), "status", "done"));
     expect(await steps(c)).toEqual(["lore-plan docs/specs/auth.md"]);
   });
 
@@ -356,7 +331,7 @@ describe("next", () => {
     const c = copy();
     await c.lore("freeze", "reset");
     const [spec, effort] = [join(c.dir, "docs/specs/auth.md"), join(c.dir, "docs/efforts/reset.md")];
-    writeFileSync(effort, setFields(readFileSync(effort, "utf8"), { status: "done" }));
+    writeFileSync(effort, markdown.setField(readFileSync(effort, "utf8"), "status", "done"));
     expect((await c.lore("next")).out).toBe("nothing in progress; start a spec with lore-spec\n");
 
     writeFileSync(spec, `${readFileSync(spec, "utf8")}\nSessions now slide.\n`);
