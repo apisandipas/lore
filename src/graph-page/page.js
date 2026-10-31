@@ -379,18 +379,18 @@ grip.addEventListener("pointerdown", (ev) => {
   grip.addEventListener("pointermove", move); grip.addEventListener("pointerup", up);
 });
 
-// Local graph: a note and everything within two links of it.
+// Local graph: a note and everything within `depth` links of it.
 const focusbar = document.getElementById("focusbar");
-function focusOn(n) {
+function focusOn(n, depth = 2) {
   const set = new Set([n]);
   let frontier = [n];
-  for (let d = 0; d < 2; d++) {
+  for (let d = 0; d < depth; d++) {
     const next = [];
     for (const m of frontier) for (const e of [...out.get(m), ...inn.get(m)]) { const o = e.s === m ? e.t : e.s; if (!set.has(o)) { set.add(o); next.push(o); } }
     frontier = next;
   }
   focus = { node: n, set };
-  document.getElementById("focusLabel").textContent = `Within two links of ${n.title}`;
+  document.getElementById("focusLabel").textContent = `Within ${depth === 1 ? "one link" : `${depth} links`} of ${n.title}`;
   focusbar.classList.add("open");
   focusbar.style.left = `${innerWidth / 2 + shift()}px`;
   refilter();
@@ -424,12 +424,15 @@ search.addEventListener("input", () => {
 search.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && matches?.size) { const n = [...matches][0]; matches = null; search.value = ""; select(n); center(n); } });
 
 addEventListener("resize", resize);
-// #code shows the code layer; #focus=<path> opens on a note's local graph.
+// #code shows the code layer; #focus=<name> (and depth=<n>) opens on a note's
+// local graph, as `lore graph <note>` asks through data.focus.
 const hash = new URLSearchParams(location.hash.slice(1));
+const byName = (name) => nodes.find((n) => n.name === name) ?? byId.get(name);
 if (hash.has("code")) { show.code = true; showCode.checked = true; }
 refilter();
 for (let i = 0; i < 300; i++) tick();
 alpha = 0.1;
 resize(); fit(); draw();
-const start = byId.get(hash.get("focus") ?? "");
-if (start) { select(start); focusOn(start); }
+const start = hash.has("focus") ? { name: hash.get("focus"), depth: Number(hash.get("depth")) || 2 } : data.focus;
+const startNode = start && byName(start.name);
+if (startNode) { select(startNode); focusOn(startNode, start.depth); }

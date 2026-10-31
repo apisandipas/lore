@@ -113,4 +113,23 @@ describe("graph page", () => {
     expect(githubUrl("", "dev")).toBeNull();
     expect(githubUrl("git@github.com:o/r.git", "")).toBeNull();
   });
+
+  test("lore graph <note> opens focused on it, two links deep unless --depth says", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "lore-graph-"));
+    expect(await run(["graph", "auth"], tree())).toMatchObject({ code: 1, out: expect.stringContaining("'auth' matches 2 notes") });
+    await run(["graph", "spec/auth", "--depth", "3", "--out", join(dir, "a.html")], tree());
+    const page = readFileSync(join(dir, "a.html"), "utf8");
+    expect(embedded(page).focus).toEqual({ name: "spec/auth", depth: 3 });
+    expect(page).toContain("<title>spec/auth in memory: lore graph</title>");
+    await run(["graph", "effort/auth", "--out", join(dir, "b.html")], tree());
+    expect(embedded(readFileSync(join(dir, "b.html"), "utf8")).focus).toEqual({ name: "effort/auth", depth: 2 });
+  });
+
+  test("a note that matches nothing, a bad --depth, or --depth with no note is refused", async () => {
+    expect(await run(["graph", "nope"], tree())).toEqual({ code: 1, out: "lore graph: no note matches 'nope'\n" });
+    expect(await run(["graph", "spec/auth", "--depth", "0"], tree())).toMatchObject({ code: 2 });
+    expect(await run(["graph", "spec/auth", "--depth", "two"], tree())).toEqual({ code: 2, out: "lore graph: --depth takes a whole number of links, 1 or more, not 'two'\n" });
+    expect(await run(["graph", "--depth", "2"], tree())).toEqual({ code: 2, out: "lore graph: --depth needs a note to count links from\n" });
+    expect(await run(["graph", "a", "b"], tree())).toEqual({ code: 2, out: "lore graph: name at most one note\n" });
+  });
 });

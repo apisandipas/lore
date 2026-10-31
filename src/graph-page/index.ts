@@ -6,11 +6,12 @@ import script from "./page.js" with { type: "text" };
 // The graph page: one file, nothing loaded from elsewhere (lore:decision/0001),
 // and the same bytes for the same notes. The data is JSON in a script tag;
 // escaping < keeps a note's `</script>` from ending it.
-export function graphPage(data: GraphData): string {
+// With focus, the page opens on that note's local graph.
+export function graphPage(data: GraphData, focus?: { name: string; depth: number }): string {
   const parts: Record<string, string> = {
-    TITLE: `${data.repo}: lore graph`.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`),
+    TITLE: `${focus ? `${focus.name} in ` : ""}${data.repo}: lore graph`.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`),
     STYLE: style,
-    DATA: JSON.stringify(data).replace(/</g, "\\u003c"),
+    DATA: JSON.stringify(focus ? { ...data, focus } : data).replace(/</g, "\\u003c"),
     SCRIPT: script,
   };
   // A function replacement, so `$'` and friends in a note stay as written.
