@@ -140,7 +140,7 @@ describe("new --link writes", () => {
     const c = copy();
     const schema = join(c.dir, ".lore/schema.yml");
     writeFileSync(schema, readFileSync(schema, "utf8").replace("      status: { enum: [planned, active, done] }", "      status: { enum: [planned, active, done] }\n      parent: { link: Effort }"));
-    const { code, out } = await c.lore("new", "Effort", "Sliding sessions", "--link", "specs=auth", "--link", "parent=reset", "--link", "specs=auth");
+    const { code, out } = await c.lore("new", "Effort", "Sliding sessions", "--link", "specs=auth", "--link", "parent=reset", "--link", "specs=spec/auth", "--link", "parent=effort/reset");
     expect(out).toBe("created docs/efforts/sliding-sessions.md\n");
     expect(code).toBe(0);
     expect(c.read("docs/efforts/sliding-sessions.md")).toBe(
@@ -195,6 +195,8 @@ describe("set writes", () => {
 
     expect((await c.lore("set", "reset", "status=done")).out).toBe("updated docs/efforts/reset.md\n  status: done\n");
     expect(frontmatter()).toBe('type: Effort\nstatus: done\nspecs: ["[[auth]]"]\n');
+    // One value given twice is still one value, as it is for lore new --link.
+    expect((await c.lore("set", "reset", "status=done", "status=done")).code).toBe(0);
 
     // The same spec under another name is not added twice.
     await c.lore("set", "reset", "specs+=docs/specs/auth.md", "specs+=billing");

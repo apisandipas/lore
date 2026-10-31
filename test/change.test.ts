@@ -50,8 +50,11 @@ describe("planChange", () => {
 
   test("a field that is not many takes one value, and no +=", () => {
     const one = { problem: "'parent' takes one value, not a list" };
-    expect(planChange(g, { def: effort }, [change("parent", ["reset", "reset"])])).toEqual(one);
+    expect(planChange(g, { def: effort }, [change("parent", ["reset", "other"])])).toEqual(one);
     expect(planChange(g, { note: note("reset") }, [change("parent", ["reset"], true)])).toEqual(one);
+    expect(planChange(g, { def: effort }, [change("parent", ["reset", "effort/reset"]), change("status", ["done", "done"])])).toEqual({
+      fields: { parent: "[[effort/reset]]", status: "done" },
+    });
   });
 
   test("+= adds to the list, not twice for one note under two names", () => {

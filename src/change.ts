@@ -38,12 +38,12 @@ export function planChange(g: Graph, target: Target, changes: Change[]): { field
       const of = target.note ? (target.note.type ?? "an untyped note") : def!.name;
       return { problem: `'${field}' is not a field of ${of} (fields: ${Object.keys(fields).join(", ")})` };
     }
-    if (!spec.many && (values.length > 1 || add)) return { problem: `'${field}' takes one value, not a list` };
-    if (field === "type" && schema.types.length && !schema.find(values[0]!)) return { problem: `type '${values[0]}' is not in .lore/schema.yml` };
-
     // A name that means one note is written as a link to it by name; any other
     // is written as given, for fieldProblems to report.
     const written = spec.link ? values.map((v) => link(g.resolve(v).note?.name ?? v)) : values;
+    // One value given twice, or one note by two names, is still one value.
+    if (!spec.many && (add || new Set(written).size > 1)) return { problem: `'${field}' takes one value, not a list` };
+    if (field === "type" && schema.types.length && !schema.find(values[0]!)) return { problem: `type '${values[0]}' is not in .lore/schema.yml` };
     let list = written;
     if (add) {
       // An Org value can hold several links as text: [[a]] [[b]].
