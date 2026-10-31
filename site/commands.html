@@ -253,7 +253,7 @@ Read .lore/WORKFLOW.md, then start a spec with lore-spec.</span></code></pre>
   </div>
 
   <h2 id="json"><code>--json</code></h2>
-  <p>Every command but <code>help</code> and <code>version</code> takes <code>--json</code>. It is the interface editors and scripts build on; the <a href="emacs.html">Emacs package</a> uses nothing else.</p>
+  <p>Every command but <code>help</code> and <code>version</code> takes <code>--json</code>. It is the interface editors and scripts build on; the <a href="emacs.html">Emacs package</a> uses nothing else. Every note in it, in <code>list</code>, <code>context</code>, <code>next</code> and <code>show</code>, has its <code>path</code>, <code>name</code>, <code>title</code>, <code>type</code> and <code>status</code>; a command adds its own fields beside them.</p>
   <div class="term">
     <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
 <pre><code><span class="cmd">lore context --json pkg/billing/charge.ts</span>
@@ -264,6 +264,7 @@ Read .lore/WORKFLOW.md, then start a spec with lore-spec.</span></code></pre>
   "notes": [
     {
       "path": "docs/decisions/0003-money-is-integer-cents.md",
+      "name": "decision/0003-money-is-integer-cents",
       "title": "Money is integer cents",
       "type": "Decision",
       "status": "accepted",

@@ -16,6 +16,12 @@ export type Command = { name: string; flags: ParseArgsOptionsConfig } & (
   | { graph: false; run(input: Input): Result | Promise<Result> }
 );
 
+// A note as every --json output gives it, the fields front ends rely on;
+// commands add their own beside these.
+export function noteJson(note: Note): { path: string; name: string; title: string; type: string | null; status: string | null } {
+  return { path: note.path, name: note.name, title: note.title, type: note.type ?? null, status: note.status ?? null };
+}
+
 export function label(note: Note): string {
   const tags = [note.type, note.status].filter(Boolean).join(", ");
   return tags ? `${note.title}  (${tags})` : note.title;

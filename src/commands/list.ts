@@ -1,15 +1,11 @@
 import type { Graph } from "../graph";
-import { label, type Command, type Result } from "./shared";
+import { label, noteJson, type Command, type Result } from "./shared";
 
 export function runList(g: Graph, opts: { type?: string; summaries: boolean; json: boolean }): Result {
   const notes = g.notes.filter((n) => !opts.type || g.isA(n, opts.type));
   if (opts.json) {
     const data = notes.map((n) => ({
-      path: n.path,
-      name: n.name,
-      title: n.title,
-      type: n.type ?? null,
-      status: n.status ?? null,
+      ...noteJson(n),
       ...(opts.summaries ? { summary: n.summary } : {}),
     }));
     return { code: 0, out: `${JSON.stringify(data, null, 2)}\n` };

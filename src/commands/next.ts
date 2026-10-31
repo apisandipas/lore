@@ -2,7 +2,7 @@ import { ACTIVE, DONE, DRAFT, RETIRED, type Graph } from "../graph";
 import { SUPERSEDED } from "../supersede";
 import type { Note } from "../parse";
 import { drift, frozen, plans } from "../plan";
-import { label, type Command, type Result } from "./shared";
+import { label, noteJson, type Command, type Result } from "./shared";
 
 // The skill that takes each step; see lore:0008-workflow-skills-and-lore-next.
 export type Skill = "lore-spec" | "lore-plan" | "lore-build" | "lore-ship";
@@ -55,10 +55,7 @@ export function runNext(g: Graph, opts: { json: boolean }): Result {
   if (opts.json) {
     const data = steps.map(({ skill, note, reason, item }) => ({
       skill,
-      path: note.path,
-      title: note.title,
-      type: note.type ?? null,
-      status: note.status ?? null,
+      ...noteJson(note),
       reason,
       ...(item ? { item } : {}),
     }));
