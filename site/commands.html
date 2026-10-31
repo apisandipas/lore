@@ -74,6 +74,9 @@
       </tbody>
     </table>
   </div>
+  <p>Each command takes only the flags listed under it, and <code>--json</code>. Any other flag is an error, so a typo fails rather than being ignored:</p>
+<pre><code><span class="cmd">lore list --sumaries</span>
+lore list: list takes no --sumaries (flags: --type, --summaries, --json)</code></pre>
 
   <h2 id="context" class="cmd-head"><code>lore context &lt;file&gt;…</code></h2>
   <p>The notes that govern one or more files: code citations, symbol anchors, path anchors from most specific, <code>CONTEXT.md</code> files from nearest, then notes one frontmatter link away. Each says why it matched.</p>

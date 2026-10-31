@@ -1,5 +1,5 @@
 import type { Graph } from "../graph";
-import { label, type Result } from "./shared";
+import { label, type Command, type Result } from "./shared";
 
 export function runList(g: Graph, opts: { type?: string; summaries: boolean; json: boolean }): Result {
   const notes = g.notes.filter((n) => !opts.type || g.isA(n, opts.type));
@@ -21,3 +21,9 @@ export function runList(g: Graph, opts: { type?: string; summaries: boolean; jso
   });
   return { code: 0, out: `${lines.join(opts.summaries ? "\n\n" : "\n")}\n` };
 }
+
+export const command: Command = {
+  name: "list",
+  flags: { type: { type: "string" }, summaries: { type: "boolean", default: false } },
+  run: (g, { flags, json }) => runList(g, { type: flags.type as string | undefined, summaries: flags.summaries as boolean, json }),
+};

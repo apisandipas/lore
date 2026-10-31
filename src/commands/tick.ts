@@ -1,6 +1,6 @@
 import type { Graph } from "../graph";
 import { tickNote } from "../edit";
-import { type Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 export async function runTick(g: Graph, args: string[], opts: { json: boolean }): Promise<Result> {
   const [ref] = args;
@@ -17,3 +17,5 @@ export async function runTick(g: Graph, args: string[], opts: { json: boolean })
   const rest = after.next === undefined ? `all ${after.total} items done` : `next: ${after.next}  (${after.done} of ${after.total} done)`;
   return { code: 0, out: `ticked ${note.path}: ${ticked}\n${rest}\n` };
 }
+
+export const command: Command = { name: "tick", flags: {}, run: (g, { args, json }) => runTick(g, args, { json }) };

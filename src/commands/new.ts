@@ -4,7 +4,7 @@ import { qualify, type Graph } from "../graph";
 import { markSuperseded, planSupersede, superseding, SUPERSEDES } from "../supersede";
 import { linkTargets, type Note } from "../parse";
 import { idPattern } from "../schema";
-import type { Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 const USAGE = "usage: lore new <type> <title> [--supersedes <note>]... [--link <field>=<note>]...";
 
@@ -103,3 +103,17 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   }
   return { code: 0, out: `${lines.join("\n")}\n` };
 }
+
+export const command: Command = {
+  name: "new",
+  flags: { supersedes: { type: "string", multiple: true, default: [] }, link: { type: "string", multiple: true, default: [] } },
+  run(g, { args, flags, json }) {
+    const links: Link[] = [];
+    for (const value of flags.link as string[]) {
+      const m = /^([^=\s]+)=(.+)$/.exec(value);
+      if (!m) return { code: 2, out: `lore new: --link takes <field>=<note>, not '${value}'\n` };
+      links.push({ field: m[1]!, note: m[2]!.trim() });
+    }
+    return runNew(g, args, { supersedes: flags.supersedes as string[], links, json });
+  },
+};

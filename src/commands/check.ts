@@ -3,7 +3,7 @@ import { fieldLine, type Note } from "../parse";
 import { supersedeProblems } from "../supersede";
 import { drift } from "../plan";
 import { fieldProblems } from "../validate";
-import type { Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 export type Problem = { file: string; line: number; message: string };
 
@@ -70,3 +70,5 @@ export function runCheck(g: Graph, opts: { json: boolean }): Result {
   const count = problems.length === 1 ? "1 problem" : `${problems.length} problems`;
   return { code, out: `${lines.join("\n")}\n\n${notes}, ${citations}: ${count}\n` };
 }
+
+export const command: Command = { name: "check", flags: {}, run: (g, { json }) => runCheck(g, { json }) };

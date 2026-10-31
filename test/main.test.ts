@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { COMMANDS } from "../src/commands";
 import { run } from "../src/main";
+import help from "../src/templates/help.txt" with { type: "text" };
 import { parseNote } from "../src/parse";
 
 const fixture = join(import.meta.dir, "fixtures", "basic");
@@ -18,6 +20,30 @@ describe("cli", () => {
     const { code, out } = await run(["nope"]);
     expect(code).toBe(2);
     expect(out).toContain("unknown command 'nope'");
+  });
+
+  test("a flag reaches only the command that takes it", async () => {
+    expect(await lore("show", "auth", "--budget", "0")).toEqual({ code: 2, out: "lore show: show takes no --budget (flags: --json)\n" });
+    expect(await lore("list", "--supersedes", "x")).toEqual({ code: 2, out: "lore list: list takes no --supersedes (flags: --type, --summaries, --json)\n" });
+    expect(await lore("init", "--link", "x")).toEqual({ code: 2, out: "lore init: init takes no --link (flags: --json)\n" });
+  });
+
+  test("every command refuses a flag it does not take, naming the ones it does", async () => {
+    for (const command of COMMANDS) {
+      const flags = [...Object.keys(command.flags), "json"].map((f) => `--${f}`).join(", ");
+      expect(await lore(command.name, "--nope")).toEqual({ code: 2, out: `lore ${command.name}: ${command.name} takes no --nope (flags: ${flags})\n` });
+    }
+  });
+
+  test("help names under each command exactly the flags it takes", () => {
+    const named = new Map<string, string[]>();
+    let current: string[] | undefined;
+    for (const line of help.split("\n")) {
+      const head = /^ {2}([a-z]+)\b/.exec(line);
+      if (head) named.set(head[1]!, (current = []));
+      for (const m of line.matchAll(/^\s+(--[a-z]+)/g)) current?.push(m[1]!);
+    }
+    for (const command of COMMANDS) expect([command.name, named.get(command.name)]).toEqual([command.name, Object.keys(command.flags).map((f) => `--${f}`)]);
   });
 
   test("--link without field=note is a usage error", async () => {
