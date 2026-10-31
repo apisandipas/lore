@@ -1,6 +1,6 @@
 import { link, updateNote } from "./edit";
 import type { Graph } from "./graph";
-import type { Note } from "./parse";
+import { fieldLine, type Note } from "./parse";
 import type { Tree } from "./tree";
 
 // Superseding: a note whose `supersedes` field links to another replaces it,
@@ -71,4 +71,33 @@ export function planSupersede(g: Graph, olds: Note[]): { fields: { supersedes?: 
 // Marks the old notes superseded; their anchors moved to the new one.
 export function markSuperseded(tree: Tree, olds: Note[]): void {
   for (const old of olds) updateNote(tree, old.path, { status: SUPERSEDED, anchors: null });
+}
+
+// Every superseding rule check reports: the old note is `superseded`, a
+// superseded note has a successor and no anchors, and code cites the note in
+// force.
+export function supersedeProblems(g: Graph): { file: string; line: number; message: string }[] {
+  const problems: { file: string; line: number; message: string }[] = [];
+  for (const note of g.notes) {
+    const at = (field: string, message: string) => problems.push({ file: note.path, line: fieldLine(note, field), message });
+    if (note.status === SUPERSEDED) {
+      const successors = supersededBy(g, note);
+      if (!successors.length) at("status", "superseded, but no note supersedes it");
+      if (note.anchors.length) {
+        const to = successors[0] ? ` to ${current(g, note).name}` : "";
+        at("anchors", `superseded note still anchors code; move its anchors${to}`);
+      }
+    }
+    for (const old of supersedes(g, note)) {
+      if (old.status !== SUPERSEDED) at(SUPERSEDES, `supersedes ${old.name}, but ${old.name} is ${old.status ?? "missing a status"}`);
+    }
+  }
+  for (const c of g.citations) {
+    const note = g.resolve(c.target).note;
+    if (note?.status !== SUPERSEDED) continue;
+    const now = current(g, note);
+    const advice = now === note ? "" : `; cite lore:${now.name} instead`;
+    problems.push({ file: c.file, line: c.line, message: `cites superseded '${note.name}'${advice}` });
+  }
+  return problems;
 }

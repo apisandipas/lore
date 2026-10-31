@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { checkGraph } from "../src/commands/check";
 import { loadGraph } from "../src/graph";
 import { drift, plans } from "../src/plan";
+import { supersedeProblems } from "../src/supersede";
 import { run } from "../src/main";
 import { diskTree, memoryTree } from "../src/tree";
 
@@ -341,5 +342,18 @@ describe("superseding", () => {
     );
     expect(tree.files()).toEqual(before);
     expect(tree.read("docs/decisions/0002-tokens.md")).toContain("status: accepted");
+  });
+
+  test("supersedeProblems reports each rule of superseding", () => {
+    const tree = decisions();
+    tree.write("docs/decisions/0001-hard-expiry.md", "---\ntype: Decision\nstatus: superseded\nanchors: [src/session.ts]\n---\n# Hard expiry\n");
+    tree.write("docs/decisions/0003-orphan.md", "---\ntype: Decision\nstatus: superseded\n---\n# Orphan\n");
+    tree.write("docs/decisions/0004-sliding.md", '---\ntype: Decision\nstatus: accepted\nsupersedes: ["[[0001]]", "[[0002]]"]\n---\n# Sliding\n');
+    expect(supersedeProblems(loadGraph(tree)).map((p) => `${p.file}:${p.line}: ${p.message}`)).toEqual([
+      "docs/decisions/0001-hard-expiry.md:4: superseded note still anchors code; move its anchors to decision/0004-sliding",
+      "docs/decisions/0003-orphan.md:3: superseded, but no note supersedes it",
+      "docs/decisions/0004-sliding.md:4: supersedes decision/0002-tokens, but decision/0002-tokens is accepted",
+      "src/session.ts:1: cites superseded 'decision/0001-hard-expiry'; cite lore:decision/0004-sliding instead",
+    ]);
   });
 });
