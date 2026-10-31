@@ -52,7 +52,7 @@
   <p class="lede">The CLI enforces the mechanics. The process, which step comes next and how to do it well, lives in agent skills you can edit per project. A hook makes sure the agent sees the notes for a file before it touches it, whether or not a skill is loaded.</p>
 
   <h2 id="skills">The skills</h2>
-  <p>Six skills ship in lore’s <a href="https://github.com/apisandipas/lore/tree/main/skills"><code>skills/</code></a> directory. Install them per project, or for every project with <code>-g</code>:</p>
+  <p>Seven skills ship in lore’s <a href="https://github.com/apisandipas/lore/tree/main/skills"><code>skills/</code></a> directory. Install them per project, or for every project with <code>-g</code>:</p>
   <div class="term">
     <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
 <pre><code><span class="cmd">npx skills add apisandipas/lore</span></code></pre>
@@ -67,6 +67,7 @@
         <tr><td><code>lore-ship</code></td><td>Check the work against the spec, bring the notes up to date, mark the effort done.</td></tr>
         <tr><td><code>lore-decide</code></td><td>Record a decision, or supersede one, at any step.</td></tr>
         <tr><td><code>lore-next</code></td><td>Run <code>lore next</code> and hand off to the skill it names.</td></tr>
+        <tr><td><code>lore-graph</code></td><td>Open the notes as an interactive <a href="commands.html#graph">graph</a> in the browser, whole or around one note.</td></tr>
       </tbody>
     </table>
   </div>
@@ -86,6 +87,7 @@
         <tr><td>“go ahead”</td><td>The agent does the step it just named.</td></tr>
         <tr><td>“use lore-next”, or “where was I?”</td><td>The agent reads the notes and tells you what is next.</td></tr>
         <tr><td>“yes”, or “no, change Y”</td><td>You approve the spec and the plan.</td></tr>
+        <tr><td>“show me the graph”, or “what links to the auth spec?”</td><td>The agent opens the notes as a graph in your browser.</td></tr>
       </tbody>
     </table>
   </div>

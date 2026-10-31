@@ -393,7 +393,7 @@ describe("init", () => {
       mkdirSync(join(home, ".claude/skills", n), { recursive: true });
       writeFileSync(join(home, ".claude/skills", n, "SKILL.md"), `---\nname: ${n}\n---\n`);
     }
-    expect(runInit(tree, { json: false, home }).out).toContain("skills: lore-ship, lore-decide, lore-next missing");
+    expect(runInit(tree, { json: false, home }).out).toContain("skills: lore-ship, lore-decide, lore-next, lore-graph missing");
     for (const n of SKILLS.slice(3)) tree.write(`.agents/skills/${n}/SKILL.md`, `---\nname: ${n}\n---\n`);
     expect(JSON.parse(runInit(tree, { json: true, home }).out).skills).toEqual({
       found: [".agents/skills", "~/.claude/skills"],

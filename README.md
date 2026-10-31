@@ -120,6 +120,7 @@ npx skills add apisandipas/lore    # the lore-* skills, per project or with -g
 | `lore-ship` | Check the work against the spec, bring notes up to date, mark the effort done |
 | `lore-decide` | Record a decision, or supersede one, at any step |
 | `lore-next` | Run `lore next` and hand off to the skill it names |
+| `lore-graph` | Open the notes as an interactive graph in the browser, whole or around one note |
 
 Each skill ends with a line naming the next step, and reads `.lore/WORKFLOW.md` first so a project can change the flow. In a fresh session, ask for `lore-next`.
 
@@ -223,6 +224,7 @@ You look it over. When you agree, the agent freezes the plan, which records the 
 | "go ahead" | The agent does the step it just named |
 | "use lore-next", or "where was I?" | The agent tells you what's next |
 | "yes", or "no, change Y" | You approve the spec and the plan |
+| "show me the graph", or "what links to the auth spec?" | The agent opens the notes as a graph in your browser |
 
 After the first message, it's mostly "go ahead".
 
