@@ -16,7 +16,7 @@ Each note syntax, Markdown and Org, reads and writes itself in one module, so a 
 
 ## Tasks
 
-- [ ] Move `Syntax`, `markdown` and `org` from parse.ts into `src/syntax/` (index, markdown, org) unchanged; parse.ts reads through `syntaxOf`; tests pass
+- [x] Move `Syntax`, `markdown` and `org` from parse.ts into `src/syntax/` (index, markdown, org) unchanged; parse.ts reads through `syntaxOf`; tests pass
 - [ ] One header reader per adapter returning field line spans; parse takes `fieldLines` from it; field line numbers in `check` output unchanged, with a test of a multi-line list field
 - [ ] Each adapter writes: `setField`, `removeField`, `tick`, rendering moved from edit.ts and Org's YAML-or-text rule shared with reading; edit.ts calls them and loses `setFields`, `frontmatterEnd`, `fieldSpan`, `orgHeader`, `orgScalar`; round-trip tests per syntax replace the `setFields` tests (all-digit hash, `title=2024`, quoted keys, maps, Org `[[a]] [[b]]` lists, removing a multi-line field, a file with no header)
 - [ ] CONTEXT.md describes `src/syntax/`; `lore check` and the tests pass

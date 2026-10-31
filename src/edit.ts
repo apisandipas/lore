@@ -1,4 +1,6 @@
-import { isOrg, ORG_KEYWORD, parseNote, type Note } from "./parse";
+import { parseNote, type Note } from "./parse";
+import { isOrg } from "./syntax";
+import { ORG_KEYWORD } from "./syntax/org";
 import type { Tree } from "./tree";
 
 // Every write to a note goes through here: frontmatter fields and checkboxes,

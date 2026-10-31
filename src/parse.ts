@@ -1,5 +1,7 @@
-import { basename, dirname, normalize } from "node:path";
+import { basename } from "node:path";
 import type { TypeDef } from "./schema";
+import { syntaxOf, type Syntax } from "./syntax";
+import { markdown } from "./syntax/markdown";
 
 export type Link = { target: string; line: number; field?: string };
 
@@ -25,120 +27,10 @@ export type Note = {
   body: string;
 };
 
-// Notes are Markdown or Org. The note model is the same; only the syntax for
-// fields, headings, links, blocks and checkboxes differs.
+// A note file: Markdown or Org (see src/syntax).
 export const NOTE_FILE = /\.(md|org)$/i;
 
-export function isOrg(path: string): boolean {
-  return /\.org$/i.test(path);
-}
-
-type Header = { fields: Record<string, unknown>; error?: string; fieldLines: Record<string, number>; bodyStart: number };
-
-type Syntax = {
-  header(lines: string[]): Header;
-  // A top heading's text, for the title; undefined when the line is not one.
-  title(line: string): string | undefined;
-  // Whether a line is a heading named `name`, at any level.
-  heading(line: string, name: string): boolean;
-  // Lines that end a paragraph and are never part of a summary.
-  breaks(trimmed: string): boolean;
-  // Opens or closes a block whose lines are not prose (code, examples).
-  fence: RegExp;
-  checkbox: RegExp;
-  links(line: string, notePath: string): string[];
-};
-
-// [[target]], [[target#heading]], [[target|label]]
-const MD_LINK = /\[\[([^\[\]|#\n]+)(?:#[^\[\]|\n]*)?(?:\|[^\[\]\n]*)?\]\]/g;
-// [[target]], [[target][label]]
-const ORG_LINK = /\[\[([^\[\]\n]+)\](?:\[[^\[\]\n]*\])?\]/g;
-export const ORG_KEYWORD = /^#\+([\w-]+):[ \t]*(.*)$/;
 const SUMMARY_MAX = 280;
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const markdown: Syntax = {
-  header(lines) {
-    const fieldLines: Record<string, number> = {};
-    if (lines[0]?.trim() !== "---") return { fields: {}, fieldLines, bodyStart: 0 };
-    const end = lines.findIndex((l, i) => i > 0 && l.trim() === "---");
-    if (end < 0) return { fields: {}, fieldLines, bodyStart: 0 };
-    const fmLines = lines.slice(1, end);
-    let fields: Record<string, unknown> = {};
-    let error: string | undefined;
-    try {
-      const parsed = Bun.YAML.parse(fmLines.join("\n"));
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) fields = parsed as Record<string, unknown>;
-      else if (parsed != null) error = "frontmatter is not a mapping";
-    } catch (e) {
-      error = `unreadable frontmatter: ${(e as Error).message}`;
-    }
-    for (const field of Object.keys(fields)) {
-      const at = fmLines.findIndex((l) => l.startsWith(`${field}:`));
-      fieldLines[field] = at >= 0 ? at + 2 : 1;
-    }
-    return { fields, error, fieldLines, bodyStart: end + 1 };
-  },
-  title: (line) => (/^#\s+/.test(line) ? line.replace(/^#\s+/, "").trim() : undefined),
-  heading: (line, name) => new RegExp(`^#{1,6}\\s+${escape(name)}\\s*$`, "i").test(line.trim()),
-  breaks: (t) => t.startsWith("#"),
-  fence: /^\s*(```|~~~)/,
-  checkbox: /^\s*[-*+] \[([ xX])\]\s*(.*)$/,
-  links: (line) => [...line.replace(/`[^`]*`/g, "").matchAll(MD_LINK)].map((m) => m[1]!.trim()),
-};
-
-const org: Syntax = {
-  // The #+key: lines at the top, before anything else. A value in brackets or
-  // quotes is YAML (a list, a map, a quoted string); anything else, links
-  // included, is text.
-  header(lines) {
-    const fields: Record<string, unknown> = {};
-    const fieldLines: Record<string, number> = {};
-    let error: string | undefined;
-    let i = 0;
-    for (; i < lines.length; i++) {
-      if (!lines[i]!.trim()) continue;
-      const m = ORG_KEYWORD.exec(lines[i]!);
-      if (!m) break;
-      const key = m[1]!.toLowerCase();
-      fieldLines[key] = i + 1;
-      try {
-        fields[key] = orgValue(m[2]!.trim());
-      } catch (e) {
-        error ??= `unreadable #+${m[1]}: ${(e as Error).message}`;
-      }
-    }
-    return { fields, error, fieldLines, bodyStart: i };
-  },
-  title: (line) => /^\*+\s+(.*)$/.exec(line)?.[1]!.replace(/\s+:[\w@#%:]+:\s*$/, "").trim(),
-  heading: (line, name) => new RegExp(`^\\*+\\s+${escape(name)}\\s*$`, "i").test(line.trim()),
-  breaks: (t) => t.startsWith("#") || /^\*+\s/.test(t) || /^:[\w-]+:/.test(t),
-  fence: /^\s*#\+(begin|end)_\w+/i,
-  checkbox: /^\s*(?:[-+]|\d+[.)])\s+\[([ xX-])\]\s*(.*)$/,
-  links(line, notePath) {
-    return [...line.matchAll(ORG_LINK)].flatMap((m) => {
-      const target = m[1]!.trim().replace(/::.*$/, "");
-      if (/^file:/i.test(target)) {
-        // As Org reads it: relative to the note, unless it is absolute.
-        const path = target.slice("file:".length);
-        const resolved = path.startsWith("/") ? path : normalize(`${dirname(notePath)}/${path}`);
-        return resolved && !resolved.startsWith("../") ? [resolved] : [];
-      }
-      // URLs and other link types, headings in this file (*, #), coderefs.
-      if (!target || /^[a-z][\w+.-]*:/i.test(target) || /^[*#(]/.test(target)) return [];
-      return [target];
-    });
-  },
-};
-
-function orgValue(text: string): unknown {
-  if (!/^[\[{"']/.test(text) || text.startsWith("[[")) return text;
-  return (Bun.YAML.parse(`v: ${text}`) as { v: unknown }).v;
-}
-
-function syntaxOf(path: string): Syntax {
-  return isOrg(path) ? org : markdown;
-}
 
 // The link targets in a field value: [[name]] in either syntax.
 export function linkTargets(text: string): string[] {
