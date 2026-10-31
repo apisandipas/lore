@@ -274,14 +274,20 @@ describe("context sessions", () => {
 });
 
 describe("anchors", () => {
-  test("anchorMatches agrees with anchorFiles for every file and anchor", () => {
+  test("an anchor's covers() agrees with its files() for every file", () => {
     const fixture = join(import.meta.dir, "fixtures", "typed");
-    const g = loadGraph(diskTree(fixture));
-    const anchors = [...new Set(g.notes.flatMap((n) => n.anchors)), "symbol:Session", "symbol:", "pkg/", "./pkg/auth/**/*.ts"];
-    expect(anchors.length).toBeGreaterThan(4);
-    for (const anchor of anchors) {
-      const files = g.anchorFiles(anchor);
-      for (const file of g.repo.files) expect([anchor, file, g.anchorMatches(anchor, file)]).toEqual([anchor, file, files.includes(file)]);
+    const disk = diskTree(fixture);
+    const memory = memoryTree(Object.fromEntries(disk.files().map((f) => [f, readFileSync(join(fixture, f), "utf8")])));
+    for (const tree of [disk, memory]) {
+      const g = loadGraph(tree);
+      const anchors = [...new Set(g.notes.flatMap((n) => n.anchors)), "symbol:Session", "symbol:", "pkg/", "./pkg/auth/**/*.ts"];
+      expect(anchors.length).toBeGreaterThan(4);
+      for (const anchor of anchors) {
+        const files = g.anchor(anchor).files();
+        for (const file of g.repo.files) expect([anchor, file, g.anchor(anchor).covers(file)]).toEqual([anchor, file, files.includes(file)]);
+      }
+      // src/unicode.ts uses Session only beside letters and digits of other scripts.
+      expect(g.anchor("symbol:Session").files()).toEqual([]);
     }
   });
 

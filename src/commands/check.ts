@@ -21,7 +21,7 @@ export function checkGraph(g: Graph): Problem[] {
       if (!r.note) at(link.line, `${link.field ? `${link.field} link` : "link"} ${target(link.target, r.candidates)}`);
     }
     for (const anchor of note.anchors) {
-      if (!g.anchorFiles(anchor).length) at(fieldLine(note, "anchors"), `anchor '${anchor}' matches no files`);
+      if (!g.anchor(anchor).files().length) at(fieldLine(note, "anchors"), `anchor '${anchor}' matches no files`);
     }
     checkSchema(g, note, at);
     checkSuperseding(g, note, at);

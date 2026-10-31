@@ -11,7 +11,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   const linksOut = note.links.map((l) => ({ ...l, resolved: g.resolve(l.target).note?.path ?? null }));
   const linksIn = g.backlinks(note).map((b) => ({ from: b.from.path, line: b.link.line, field: b.link.field ?? null }));
   const citedBy = g.citations.filter((c) => g.resolve(c.target).note === note).map((c) => ({ file: c.file, line: c.line }));
-  const anchors = note.anchors.map((anchor) => ({ anchor, files: g.anchorFiles(anchor) }));
+  const anchors = note.anchors.map((anchor) => ({ anchor, files: g.anchor(anchor).files() }));
   const history = chain(g, note);
 
   if (opts.json) {

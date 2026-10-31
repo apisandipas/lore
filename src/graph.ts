@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import { anchors, type Anchor } from "./anchor";
 import { openRepo, type Repo } from "./repo";
 import { NOTE_FILE, parseNote, sectionSummary, type Link, type Note } from "./parse";
 import { typeForPath } from "./schema";
@@ -20,11 +21,8 @@ export type Graph = {
   // resolve, with an error saying why nothing or too much matched.
   find(ref: string): { note?: Note; error?: string };
   backlinks(note: Note): Backlink[];
-  anchorFiles(anchor: string): string[];
-  // Whether one file falls under an anchor, without listing the anchor's
-  // files: cheap enough to ask of every anchor for every file. A path anchor
-  // also covers a file that does not exist yet.
-  anchorMatches(anchor: string, file: string): boolean;
+  // An anchor, parsed once: its kind, the files it governs, whether it covers one.
+  anchor(text: string): Anchor;
   // Notes whose `supersedes` field links to this one, and the ones it links to.
   supersededBy(note: Note): Note[];
   supersedes(note: Note): Note[];
@@ -45,7 +43,6 @@ export const RETIRED = "retired";
 
 // Code cites notes as lore:<name> rather than double brackets; see lore:0004.
 const CITATION = String.raw`\blore:[A-Za-z0-9_./-]*[A-Za-z0-9_]`;
-const GLOB_CHAR = /[*?[{]/;
 
 export function loadGraph(tree: Tree): Graph {
   const repo = openRepo(tree);
@@ -104,45 +101,7 @@ export function loadGraph(tree: Tree): Graph {
     .map((h) => ({ file: h.file, line: h.line, target: h.text.slice("lore:".length) }))
     .filter((c) => fileSet.has(c.file) && !isNoteFile(c.file));
 
-  const anchorCache = new Map<string, string[]>();
-  const anchorFiles = (anchor: string): string[] => {
-    const cached = anchorCache.get(anchor);
-    if (cached) return cached;
-    let found: string[];
-    if (anchor.startsWith("symbol:")) {
-      const name = anchor.slice("symbol:".length).trim();
-      found = name
-        ? [...new Set(tree.search(name, { fixed: true, word: true }).map((h) => h.file))]
-            .filter((f) => fileSet.has(f) && !isNoteFile(f))
-            .sort()
-        : [];
-    } else {
-      const pattern = anchor.trim().replace(/^\.\//, "").replace(/\/$/, "");
-      if (GLOB_CHAR.test(pattern)) {
-        const glob = new Bun.Glob(pattern);
-        found = repo.files.filter((f) => glob.match(f));
-      } else {
-        found = repo.files.filter((f) => f === pattern || f.startsWith(`${pattern}/`));
-      }
-    }
-    anchorCache.set(anchor, found);
-    return found;
-  };
-
-  const globs = new Map<string, Bun.Glob>();
-  const anchorMatches = (anchor: string, file: string): boolean => {
-    if (anchor.startsWith("symbol:")) {
-      const name = anchor.slice("symbol:".length).trim();
-      if (!name || !fileSet.has(file) || isNoteFile(file)) return false;
-      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return new RegExp(String.raw`(?<!\w)(?:${escaped})(?!\w)`).test(tree.read(file) ?? "");
-    }
-    const pattern = anchor.trim().replace(/^\.\//, "").replace(/\/$/, "");
-    if (!GLOB_CHAR.test(pattern)) return file === pattern || file.startsWith(`${pattern}/`);
-    let glob = globs.get(pattern);
-    if (!glob) globs.set(pattern, (glob = new Bun.Glob(pattern)));
-    return glob.match(file);
-  };
+  const anchor = anchors({ tree, files: repo.files, isNoteFile });
 
   const backlinks = (note: Note): Backlink[] =>
     notes.flatMap((from) => from.links.filter((link) => resolve(link.target).note === note).map((link) => ({ from, link })));
@@ -167,7 +126,7 @@ export function loadGraph(tree: Tree): Graph {
     return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchorFiles, anchorMatches, supersedes, supersededBy, current, isA };
+  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchor, supersedes, supersededBy, current, isA };
 }
 
 // The names of several notes, for saying which ones a name could mean; paths
@@ -180,11 +139,4 @@ export function names(notes: Note[]): string {
 // A typed note's name: its type, lowercased, then its stem, as in spec/due-dates.
 export function qualify(type: string, stem: string): string {
   return `${type.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${stem}`;
-}
-
-// How narrowly a path anchor targets code: the literal prefix before any glob.
-export function anchorSpecificity(anchor: string): number {
-  const pattern = anchor.trim().replace(/^\.\//, "").replace(/\/$/, "");
-  const i = pattern.search(GLOB_CHAR);
-  return i < 0 ? pattern.length + 1 : i;
 }

@@ -1,5 +1,5 @@
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { anchorSpecificity, SUPERSEDES, type Graph } from "../graph";
+import { SUPERSEDES, type Graph } from "../graph";
 import type { Note } from "../parse";
 import { openSession } from "../session";
 import { label, type Result } from "./shared";
@@ -40,10 +40,11 @@ export function contextFor(g: Graph, files: string[]): Match[] {
     }
 
     for (const note of g.notes) {
-      for (const anchor of note.anchors) {
-        if (!g.anchorMatches(anchor, file)) continue;
-        if (anchor.startsWith("symbol:")) add(note, SYMBOL, 0, `uses ${anchor.slice(7)}${where}`);
-        else add(note, PATH, anchorSpecificity(anchor), `anchor ${anchor}${where}`);
+      for (const text of note.anchors) {
+        const anchor = g.anchor(text);
+        if (!anchor.covers(file)) continue;
+        if (anchor.kind === "symbol") add(note, SYMBOL, anchor.specificity, `uses ${anchor.name}${where}`);
+        else add(note, PATH, anchor.specificity, `anchor ${text}${where}`);
       }
     }
 
