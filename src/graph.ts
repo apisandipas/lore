@@ -23,17 +23,10 @@ export type Graph = {
   backlinks(note: Note): Backlink[];
   // An anchor, parsed once: its kind, the files it governs, whether it covers one.
   anchor(text: string): Anchor;
-  // Notes whose `supersedes` field links to this one, and the ones it links to.
-  supersededBy(note: Note): Note[];
-  supersedes(note: Note): Note[];
-  // Follows supersededBy to the decision in force now.
-  current(note: Note): Note;
   // Whether a note is of the named type, however either is capitalised.
   isA(note: Note, type: string): boolean;
 };
 
-export const SUPERSEDES = "supersedes";
-export const SUPERSEDED = "superseded";
 // Statuses from the schema `lore init` writes. A project that renames them
 // edits its skills too, so check and next read these names rather than guessing.
 export const DRAFT = "draft";
@@ -106,27 +99,12 @@ export function loadGraph(tree: Tree): Graph {
   const backlinks = (note: Note): Backlink[] =>
     notes.flatMap((from) => from.links.filter((link) => resolve(link.target).note === note).map((link) => ({ from, link })));
 
-  const supersedes = (note: Note): Note[] =>
-    note.links.filter((l) => l.field === SUPERSEDES).flatMap((l) => resolve(l.target).note ?? []);
-  const supersededBy = (note: Note): Note[] => notes.filter((n) => supersedes(n).includes(note));
-  const current = (note: Note): Note => {
-    const seen = new Set<Note>();
-    let at = note;
-    while (!seen.has(at)) {
-      seen.add(at);
-      const next = supersededBy(at)[0];
-      if (!next) break;
-      at = next;
-    }
-    return at;
-  };
-
   const isA = (note: Note, type: string): boolean => {
     const def = schema.find(type);
     return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchor, supersedes, supersededBy, current, isA };
+  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchor, isA };
 }
 
 // The names of several notes, for saying which ones a name could mean; paths

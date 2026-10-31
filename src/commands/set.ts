@@ -1,6 +1,7 @@
 import { planChange, type Change } from "../change";
 import { updateNote } from "../edit";
-import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { SUPERSEDED, SUPERSEDES } from "../supersede";
 import { render } from "../syntax/markdown";
 import type { Result } from "./shared";
 

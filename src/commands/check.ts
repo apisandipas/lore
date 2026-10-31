@@ -1,4 +1,5 @@
-import { names, SUPERSEDED, type Graph } from "../graph";
+import { names, type Graph } from "../graph";
+import { current, SUPERSEDED, supersededBy, supersedes } from "../supersede";
 import type { Note } from "../parse";
 import { drift } from "../plan";
 import { fieldProblems } from "../validate";
@@ -33,7 +34,7 @@ export function checkGraph(g: Graph): Problem[] {
     if (!r.note) {
       problems.push({ file: c.file, line: c.line, message: `citation ${target(`lore:${c.target}`, r.candidates)}` });
     } else if (r.note.status === SUPERSEDED) {
-      const now = g.current(r.note);
+      const now = current(g, r.note);
       const advice = now === r.note ? "" : `; cite lore:${now.name} instead`;
       problems.push({ file: c.file, line: c.line, message: `cites superseded '${r.note.name}'${advice}` });
     }
@@ -59,14 +60,14 @@ function checkSchema(g: Graph, note: Note, at: At) {
 
 function checkSuperseding(g: Graph, note: Note, at: At) {
   if (note.status === SUPERSEDED) {
-    const successors = g.supersededBy(note);
+    const successors = supersededBy(g, note);
     if (!successors.length) at(fieldLine(note, "status"), "superseded, but no note supersedes it");
     if (note.anchors.length) {
-      const to = successors[0] ? ` to ${g.current(note).name}` : "";
+      const to = successors[0] ? ` to ${current(g, note).name}` : "";
       at(fieldLine(note, "anchors"), `superseded note still anchors code; move its anchors${to}`);
     }
   }
-  for (const old of g.supersedes(note)) {
+  for (const old of supersedes(g, note)) {
     if (old.status !== SUPERSEDED) {
       at(fieldLine(note, "supersedes"), `supersedes ${old.name}, but ${old.name} is ${old.status ?? "missing a status"}`);
     }

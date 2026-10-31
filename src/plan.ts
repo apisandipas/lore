@@ -1,5 +1,6 @@
 import { updateNote } from "./edit";
-import { DONE, SUPERSEDES, type Graph } from "./graph";
+import { DONE, type Graph } from "./graph";
+import { SUPERSEDES } from "./supersede";
 import type { Link, Note } from "./parse";
 
 // An effort's plan against its specs: which notes are efforts and specs, what

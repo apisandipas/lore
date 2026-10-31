@@ -1,6 +1,7 @@
 import { planChange, type Change } from "../change";
 import { createNote, link, updateNote, type Fields } from "../edit";
-import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { current, SUPERSEDED, SUPERSEDES } from "../supersede";
 import { linkTargets, NOTE_FILE, type Note } from "../parse";
 import { idPattern } from "../schema";
 import type { Result } from "./shared";
@@ -38,7 +39,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
     const { note, error } = g.find(ref);
     if (!note) return { code: 1, out: `lore new: --supersedes ${error}\n` };
     if (note.status === SUPERSEDED) {
-      return { code: 1, out: `lore new: ${note.name} is already superseded by ${g.current(note).name}\n` };
+      return { code: 1, out: `lore new: ${note.name} is already superseded by ${current(g, note).name}\n` };
     }
     const allowed = note.def?.fields.status?.enum;
     if (allowed && !allowed.includes(SUPERSEDED)) {

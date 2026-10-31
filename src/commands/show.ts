@@ -1,5 +1,5 @@
 import type { Graph } from "../graph";
-import type { Note } from "../parse";
+import { history } from "../supersede";
 import { label, type Result } from "./shared";
 
 export function runShow(g: Graph, args: string[], opts: { json: boolean }): Result {
@@ -12,7 +12,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   const linksIn = g.backlinks(note).map((b) => ({ from: b.from.path, line: b.link.line, field: b.link.field ?? null }));
   const citedBy = g.citations.filter((c) => g.resolve(c.target).note === note).map((c) => ({ file: c.file, line: c.line }));
   const anchors = note.anchors.map((anchor) => ({ anchor, files: g.anchor(anchor).files() }));
-  const history = chain(g, note);
+  const chain = history(g, note);
 
   if (opts.json) {
     const data = {
@@ -27,7 +27,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
       linksIn,
       citedBy,
       anchors,
-      history: history.map((n) => ({ path: n.path, name: n.name, status: n.status ?? null })),
+      history: chain.map((n) => ({ path: n.path, name: n.name, status: n.status ?? null })),
       checklist: note.checklist,
     };
     return { code: 0, out: `${JSON.stringify(data, null, 2)}\n` };
@@ -39,10 +39,10 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   const section = (title: string, lines: string[]) => {
     if (lines.length) sections.push(`${title}:\n${lines.map((l) => `  ${l}`).join("\n")}`);
   };
-  if (history.length > 1) {
+  if (chain.length > 1) {
     section(
       "History (newest first)",
-      history.map((n) => `${n === note ? "▸ " : "  "}${n.name}  (${n.status ?? "no status"})`),
+      chain.map((n) => `${n === note ? "▸ " : "  "}${n.name}  (${n.status ?? "no status"})`),
     );
   }
   section(
@@ -63,18 +63,4 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
     anchors.map((a) => `${a.anchor} → ${a.files.length === 1 ? "1 file" : `${a.files.length} files`}`),
   );
   return { code: 0, out: `${sections.join("\n\n")}\n` };
-}
-
-// Every decision in this note's supersede chain, newest first. Branches
-// (one note superseding two) are flattened in walk order.
-function chain(g: Graph, note: Note): Note[] {
-  const newest = g.current(note);
-  const out: Note[] = [];
-  const walk = (n: Note) => {
-    if (out.includes(n)) return;
-    out.push(n);
-    g.supersedes(n).forEach(walk);
-  };
-  walk(newest);
-  return out.includes(note) ? out : [note];
 }
