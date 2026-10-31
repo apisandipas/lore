@@ -25,7 +25,7 @@ When it is unclear, ask the user. If small work grows past one commit, stop and 
 3. **lore-build**: take the first open task, do it, check it off. Repeat.
 4. **lore-ship**: with every task checked, confirm `lore check` and the tests pass, mark the Effort `done`, and update any `CONTEXT.md` the work changed.
 
-**lore-decide** records a decision at any step, whenever a choice would surprise a later reader. **lore-next** runs `lore next` to say which step comes next; use it after a break or in a fresh session.
+**lore-decide** records a decision at any step, whenever a choice would surprise a later reader. **lore-next** runs `lore next` to say which step comes next; use it after a break or in a fresh session. **lore-graph** opens the notes as an interactive graph in the browser, for the big picture or to show someone.
 
 ## Rules
 

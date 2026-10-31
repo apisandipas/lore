@@ -17,7 +17,7 @@ const FILES: [string, string][] = [
   [".lore/templates/Effort.md", effort],
 ];
 
-export const SKILLS = ["lore-spec", "lore-plan", "lore-build", "lore-ship", "lore-decide", "lore-next"];
+export const SKILLS = ["lore-spec", "lore-plan", "lore-build", "lore-ship", "lore-decide", "lore-next", "lore-graph"];
 export const INSTALL = "npx skills add apisandipas/lore";
 // Where agents look for skills, per project and per user. The skills CLI
 // installs them; init only looks (see lore:0010).
