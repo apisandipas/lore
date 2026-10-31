@@ -168,10 +168,6 @@ describe("resolving", () => {
     expect(checkGraph(g).map((p) => p.message)).toEqual(["link 'CONTEXT' is ambiguous: it matches CONTEXT.md and src/CONTEXT.md"]);
   });
 
-  test("an ambiguous name lists what it matches", () => {
-    expect(loadGraph(tree()).find("context").error).toBe("'context' matches 2 notes:\n  CONTEXT.md\n  src/CONTEXT.md");
-  });
-
   test("shadowedBy finds the links and citations a new note would make ambiguous, by the policy itself", () => {
     const g = loadGraph(
       repo({

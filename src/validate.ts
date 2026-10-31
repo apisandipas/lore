@@ -1,4 +1,5 @@
-import { names, type Graph } from "./graph";
+import type { Graph } from "./graph";
+import { names } from "./names";
 import { linkTargets } from "./parse";
 import type { TypeDef } from "./schema";
 
