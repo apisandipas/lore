@@ -71,7 +71,9 @@ export function loadGraph(tree: Tree): Graph {
   const citations = tree
     .search(CITATION)
     .map((h) => ({ file: h.file, line: h.line, target: h.text.slice("lore:".length) }))
-    .filter((c) => fileSet.has(c.file) && !isNoteFile(c.file));
+    .filter((c) => fileSet.has(c.file) && !isNoteFile(c.file))
+    // rg searches in parallel; sorted, every command sees them in one order.
+    .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
 
   const shadowedBy = (note: Named): Shadowed[] => {
     const after = names.adding(note);

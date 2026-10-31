@@ -34,6 +34,12 @@ Commands:
                       to; check then reports when one changes
   next                What to do next, read from spec and effort state, and
                       the lore-* skill that does it
+  graph [<note>]      Write the notes as an interactive graph, one HTML page,
+                      and print its path; with a note, open focused on it
+                        --out <file>      write the page here (default: the
+                                          temp directory)
+                        --depth <n>       links out from the note (default 2)
+                        --open            open the page in the browser
   help                Show this help
   version             Print the version
 
