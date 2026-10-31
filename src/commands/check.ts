@@ -1,4 +1,5 @@
-import { names, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { names } from "../names";
 import { fieldLine, type Note } from "../parse";
 import { supersedeProblems } from "../supersede";
 import { drift } from "../plan";

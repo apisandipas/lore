@@ -1,6 +1,7 @@
 import { planChange, type Change } from "../change";
 import { createNote, type Fields } from "../edit";
-import { qualify, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { qualify } from "../names";
 import { markSuperseded, planSupersede, superseding, SUPERSEDES } from "../supersede";
 import { linkTargets, type Note } from "../parse";
 import { idPattern } from "../schema";
