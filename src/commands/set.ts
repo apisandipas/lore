@@ -3,7 +3,7 @@ import { updateNote } from "../edit";
 import type { Graph } from "../graph";
 import { superseding } from "../supersede";
 import { render } from "../syntax/markdown";
-import type { Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 const USAGE = "usage: lore set <note> <field>=<value>... (or <field>+=<value> on a list field)";
 const ASSIGNMENT = /^([A-Za-z_][\w-]*)(\+?=)(.+)$/;
@@ -44,3 +44,5 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
   const lines = Object.entries(set).map(([field, value]) => `  ${field}: ${render(value)}`);
   return { code: 0, out: `updated ${note.path}\n${lines.join("\n")}\n` };
 }
+
+export const command: Command = { name: "set", flags: {}, run: (g, { args, json }) => runSet(g, args, { json }) };

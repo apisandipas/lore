@@ -1,6 +1,6 @@
 import type { Graph } from "../graph";
 import { history } from "../supersede";
-import { label, type Result } from "./shared";
+import { label, type Command, type Result } from "./shared";
 
 export function runShow(g: Graph, args: string[], opts: { json: boolean }): Result {
   const [ref] = args;
@@ -64,3 +64,5 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
   );
   return { code: 0, out: `${sections.join("\n\n")}\n` };
 }
+
+export const command: Command = { name: "show", flags: {}, run: (g, { args, json }) => runShow(g, args, { json }) };

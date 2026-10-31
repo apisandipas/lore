@@ -1,6 +1,6 @@
 import type { Graph } from "../graph";
 import { freeze } from "../plan";
-import type { Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 export async function runFreeze(g: Graph, args: string[], opts: { json: boolean }): Promise<Result> {
   const [ref] = args;
@@ -15,3 +15,5 @@ export async function runFreeze(g: Graph, args: string[], opts: { json: boolean 
   if (opts.json) return { code: 0, out: `${JSON.stringify({ path: note.path, frozen }, null, 2)}\n` };
   return { code: 0, out: `froze ${note.path} against:\n${frozen.map((f) => `  ${f.path} ${f.hash}`).join("\n")}\n` };
 }
+
+export const command: Command = { name: "freeze", flags: {}, run: (g, { args, json }) => runFreeze(g, args, { json }) };

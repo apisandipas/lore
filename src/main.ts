@@ -3,22 +3,11 @@
 // read-only Nix store path and inside a `bun build --compile` binary alike.
 import { parseArgs } from "node:util";
 import pkg from "../package.json" with { type: "json" };
-import { runCheck } from "./commands/check";
-import { runContext } from "./commands/context";
-import { runFreeze } from "./commands/freeze";
-import { runInit } from "./commands/init";
-import { runList } from "./commands/list";
-import { runNew, type Link } from "./commands/new";
-import { runNext } from "./commands/next";
-import { runSet } from "./commands/set";
+import { COMMANDS } from "./commands";
 import type { Result } from "./commands/shared";
-import { runShow } from "./commands/show";
-import { runTick } from "./commands/tick";
 import { loadGraph } from "./graph";
 import { diskTree, type Tree } from "./tree";
 import help from "./templates/help.txt" with { type: "text" };
-
-const DEFAULT_BUDGET = 4000;
 
 // `at` is a directory on disk, or a tree to run against (tests use memory).
 export async function run(
@@ -26,8 +15,8 @@ export async function run(
   at: string | Tree = process.cwd(),
 ): Promise<Result> {
   const cwd = typeof at === "string" ? at : at.root;
-  const [command, ...rest] = argv;
-  switch (command) {
+  const [name, ...rest] = argv;
+  switch (name) {
     case undefined:
     case "help":
     case "--help":
@@ -36,104 +25,34 @@ export async function run(
     case "version":
     case "--version":
       return { code: 0, out: `${pkg.version}\n` };
-    case "context":
-    case "show":
-    case "list":
-    case "check":
-    case "new":
-    case "freeze":
-    case "next":
-    case "init":
-    case "tick":
-    case "set":
-      break;
-    default:
-      return { code: 2, out: `lore: unknown command '${command}'\n\n${help}` };
   }
+  const command = COMMANDS.find((c) => c.name === name);
+  if (!command) return { code: 2, out: `lore: unknown command '${name}'\n\n${help}` };
 
+  // Only the flags this command takes, and --json, which every command takes.
+  const options = { ...command.flags, json: { type: "boolean", default: false } } as const;
   let parsed;
   try {
-    parsed = parseArgs({
-      args: rest,
-      allowPositionals: true,
-      options: {
-        json: { type: "boolean", default: false },
-        full: { type: "boolean", default: false },
-        budget: { type: "string" },
-        session: { type: "string" },
-        forget: { type: "boolean", default: false },
-        type: { type: "string" },
-        summaries: { type: "boolean", default: false },
-        supersedes: { type: "string", multiple: true, default: [] },
-        link: { type: "string", multiple: true, default: [] },
-      },
-    });
+    parsed = parseArgs({ args: rest, allowPositionals: true, options });
   } catch (e) {
-    return { code: 2, out: `lore ${command}: ${(e as Error).message}\n` };
+    const err = e as Error & { code?: string };
+    const flag = err.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION" ? /'([^']+)'/.exec(err.message)?.[1] : undefined;
+    const takes = Object.keys(options).map((f) => `--${f}`).join(", ");
+    return { code: 2, out: `lore ${name}: ${flag ? `${name} takes no ${flag} (flags: ${takes})` : err.message}\n` };
   }
   const { values, positionals } = parsed;
-  const budget =
-    values.budget === undefined ? DEFAULT_BUDGET : Number(values.budget);
-  if (!Number.isInteger(budget) || budget <= 0)
-    return {
-      code: 2,
-      out: `lore ${command}: --budget takes a positive number\n`,
-    };
-  const links: Link[] = [];
-  for (const value of values.link) {
-    const m = /^([^=\s]+)=(.+)$/.exec(value);
-    if (!m)
-      return {
-        code: 2,
-        out: `lore ${command}: --link takes <field>=<note>, not '${value}'\n`,
-      };
-    links.push({ field: m[1]!, note: m[2]!.trim() });
-  }
+  const input = { cwd, args: positionals, flags: values, json: values.json as boolean };
 
-  // init writes the .lore/ that loading a graph would read.
-  if (command === "init") return runInit(cwd, { json: values.json });
+  if (command.graph === false) return command.run(input);
   let g;
   try {
     g = loadGraph(typeof at === "string" ? diskTree(at) : at);
   } catch (e) {
     // The repo could not be read (schema.yml unparseable, rg missing): a
     // failure, not a usage error.
-    return { code: 1, out: `lore ${command}: ${(e as Error).message}\n` };
+    return { code: 1, out: `lore ${name}: ${(e as Error).message}\n` };
   }
-  switch (command) {
-    case "context":
-      return runContext(g, cwd, positionals, {
-        full: values.full,
-        json: values.json,
-        budget,
-        session: values.session,
-        forget: values.forget,
-      });
-    case "show":
-      return runShow(g, positionals, { json: values.json });
-    case "list":
-      return runList(g, {
-        type: values.type,
-        summaries: values.summaries,
-        json: values.json,
-      });
-    case "check":
-      return runCheck(g, { json: values.json });
-    case "new":
-      return runNew(g, positionals, {
-        supersedes: values.supersedes,
-        links,
-        json: values.json,
-      });
-    case "freeze":
-      return runFreeze(g, positionals, { json: values.json });
-    case "next":
-      return runNext(g, { json: values.json });
-    case "tick":
-      return runTick(g, positionals, { json: values.json });
-    case "set":
-      return runSet(g, positionals, { json: values.json });
-  }
+  return command.run(g, input);
 }
 
 if (import.meta.main) {

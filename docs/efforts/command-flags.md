@@ -16,6 +16,6 @@ Each command file exports a `command`: its name, its flags in `parseArgs` form, 
 
 ## Tasks
 
-- [ ] Every command exports a `command` declaration; `src/commands/index.ts` lists them; `main.ts` dispatches through it, parsing only that command's flags and adding `--json`; context checks `--budget` and new parses `--link` themselves; tests pass
+- [x] Every command exports a `command` declaration; `src/commands/index.ts` lists them; `main.ts` dispatches through it, parsing only that command's flags and adding `--json`; context checks `--budget` and new parses `--link` themselves; tests pass
 - [ ] A flag a command does not take is exit 2 naming the flags it does take, with tests for `show --budget 0`, `list --supersedes x` and `init --link x`, and one per command
 - [ ] A test that `help.txt` names under each command exactly the flags it declares; the site's command overview says a flag a command does not take is an error; CONTEXT.md describes the command declarations; `lore check` and the tests pass

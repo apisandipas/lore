@@ -7,7 +7,7 @@ import spec from "../templates/init/Spec.md" with { type: "text" };
 import decision from "../templates/init/Decision.md" with { type: "text" };
 import effort from "../templates/init/Effort.md" with { type: "text" };
 import { findRoot } from "../tree";
-import type { Result } from "./shared";
+import type { Command, Result } from "./shared";
 
 const FILES: [string, string][] = [
   [".lore/schema.yml", schema],
@@ -57,3 +57,5 @@ export async function runInit(cwd: string, opts: { json: boolean; home?: string 
   lines.push("", "Read .lore/WORKFLOW.md, then start a spec with lore-spec.");
   return { code: 0, out: `${lines.join("\n")}\n` };
 }
+
+export const command: Command = { name: "init", flags: {}, graph: false, run: ({ cwd, json }) => runInit(cwd, { json }) };

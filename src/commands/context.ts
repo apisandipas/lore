@@ -3,7 +3,7 @@ import type { Graph } from "../graph";
 import { current, SUPERSEDES, supersedes } from "../supersede";
 import type { Note } from "../parse";
 import { openSession } from "../session";
-import { label, type Result } from "./shared";
+import { label, type Command, type Result } from "./shared";
 
 export type Match = { note: Note; rank: number; specificity: number; reasons: string[] };
 
@@ -168,3 +168,26 @@ function indent(text: string): string {
     .map((l) => (l ? `    ${l}` : l))
     .join("\n");
 }
+
+const DEFAULT_BUDGET = 4000;
+
+export const command: Command = {
+  name: "context",
+  flags: {
+    full: { type: "boolean", default: false },
+    budget: { type: "string" },
+    session: { type: "string" },
+    forget: { type: "boolean", default: false },
+  },
+  run(g, { cwd, args, flags, json }) {
+    const budget = flags.budget === undefined ? DEFAULT_BUDGET : Number(flags.budget);
+    if (!Number.isInteger(budget) || budget <= 0) return { code: 2, out: "lore context: --budget takes a positive number\n" };
+    return runContext(g, cwd, args, {
+      full: flags.full as boolean,
+      json,
+      budget,
+      session: flags.session as string | undefined,
+      forget: flags.forget as boolean,
+    });
+  },
+};
