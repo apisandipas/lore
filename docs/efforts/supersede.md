@@ -17,6 +17,6 @@ One module owns superseding, what it writes and what must then hold, so `check` 
 ## Tasks
 
 - [x] Add `src/supersede.ts` with the chain functions, `history` and the constants; Graph drops `supersedes`, `supersededBy` and `current`; check, context, show, new, set and plan use it; tests pass
-- [ ] `planSupersede`, `markSuperseded` and `superseding`: `new` and `set` use them, with a test that `new --supersedes` on a memory tree leaves `check` with nothing to report
+- [x] `planSupersede`, `markSuperseded` and `superseding`: `new` and `set` use them, with a test that `new --supersedes` on a memory tree leaves `check` with nothing to report
 - [ ] `supersedeProblems(g)`: check's superseding and citation rules move into it, with a Graph-level test of each problem
 - [ ] CONTEXT.md describes `src/supersede.ts`; `lore check` and the tests pass

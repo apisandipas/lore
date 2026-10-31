@@ -1,7 +1,7 @@
 import { planChange, type Change } from "../change";
-import { createNote, link, updateNote, type Fields } from "../edit";
+import { createNote, type Fields } from "../edit";
 import type { Graph } from "../graph";
-import { current, SUPERSEDED, SUPERSEDES } from "../supersede";
+import { markSuperseded, planSupersede, superseding, SUPERSEDES } from "../supersede";
 import { linkTargets, NOTE_FILE, type Note } from "../parse";
 import { idPattern } from "../schema";
 import type { Result } from "./shared";
@@ -38,21 +38,16 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   for (const ref of opts.supersedes) {
     const { note, error } = g.find(ref);
     if (!note) return { code: 1, out: `lore new: --supersedes ${error}\n` };
-    if (note.status === SUPERSEDED) {
-      return { code: 1, out: `lore new: ${note.name} is already superseded by ${current(g, note).name}\n` };
-    }
-    const allowed = note.def?.fields.status?.enum;
-    if (allowed && !allowed.includes(SUPERSEDED)) {
-      return { code: 1, out: `lore new: ${note.type} has no '${SUPERSEDED}' status, so ${note.name} cannot be superseded\n` };
-    }
     olds.push(note);
   }
+  const superseded = planSupersede(g, olds);
+  if ("problem" in superseded) return { code: 1, out: `lore new: ${superseded.problem}\n` };
 
   // Every link is checked before anything is written.
   const changes = new Map<string, Change>();
   for (const { field, note: ref } of opts.links) {
     // Superseding also rewrites the old note, so it keeps its own flag.
-    if (field === SUPERSEDES) return { code: 1, out: `lore new: --link cannot set ${SUPERSEDES}; use --supersedes <note>\n` };
+    if (superseding(field, [ref])) return { code: 1, out: `lore new: --link cannot set ${SUPERSEDES}; use --supersedes <note>\n` };
     if (!def.fields[field]?.link) {
       const fields = Object.keys(def.fields).filter((f) => def.fields[f]!.link && f !== SUPERSEDES);
       return { code: 1, out: `lore new: '${field}' is not a link field of ${def.name} (link fields: ${fields.join(", ") || "none"})\n` };
@@ -79,11 +74,9 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const fields: Fields = { type: def.name };
   const status = def.fields.status?.enum?.[0];
   if (status) fields.status = status;
-  if (olds.length) fields[SUPERSEDES] = olds.map((o) => link(o.name));
-  Object.assign(fields, linked);
-  // What the old decisions governed, the new one now governs.
-  const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
-  if (anchors.length) fields.anchors = anchors;
+  // Anchors go last, after the links.
+  const { anchors, ...links } = superseded.fields;
+  Object.assign(fields, links, linked, anchors ? { anchors } : {});
 
   const template = tree.read(`.lore/templates/${def.name}.${def.format}`);
   const body = template?.replaceAll("{{title}}", title) ?? `${def.format === "org" ? "*" : "#"} ${title}\n`;
@@ -97,7 +90,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   ].filter((c) => c.was && bare(c.target));
 
   createNote(tree, path, fields, body);
-  for (const old of olds) updateNote(tree, old.path, { status: SUPERSEDED, anchors: null });
+  markSuperseded(tree, olds);
 
   if (opts.json) {
     const pathOf = (v: string) => g.resolve(linkTargets(v)[0]!).note!.path;
