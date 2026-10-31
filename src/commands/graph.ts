@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type { Graph } from "../graph";
-import { graphPage, githubUrl } from "../graph-page";
+import { githubBranch, graphPage, githubUrl } from "../graph-page";
 import { graphData } from "../graph-page/data";
 import type { Command, Result } from "./shared";
 
@@ -30,7 +30,8 @@ export function runGraph(g: Graph, args: string[], opts: { cwd: string; out?: st
   return { code: 0, out: `${file}\n` };
 }
 
-// The GitHub URL of the repo's files at the current branch, if origin is on GitHub.
+// The GitHub URL of the repo's files, if origin is on GitHub, read from the
+// remote-tracking refs: no network call.
 function repoUrl(root: string): string | null {
   const git = (...args: string[]) => {
     try {
@@ -40,7 +41,13 @@ function repoUrl(root: string): string | null {
       return "";
     }
   };
-  return githubUrl(git("remote", "get-url", "origin"), git("branch", "--show-current"));
+  // Each branch origin has, and how many of HEAD's commits it lacks.
+  const origin = git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin")
+    .split("\n")
+    .filter((r) => r.startsWith("origin/") && r !== "origin/HEAD")
+    .map((r) => ({ branch: r.slice("origin/".length), behind: Number(git("rev-list", "--count", `${r}..HEAD`)) }));
+  const originDefault = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD").replace(/^origin\//, "");
+  return githubUrl(git("remote", "get-url", "origin"), githubBranch(git("branch", "--show-current"), origin, originDefault));
 }
 
 function openInBrowser(file: string) {

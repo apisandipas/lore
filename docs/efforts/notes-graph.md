@@ -4,7 +4,7 @@ status: done
 specs: ["[[spec/notes-graph]]"]
 issue: https://github.com/apisandipas/lore/issues/20
 frozen:
-  docs/specs/notes-graph.md: 16de88105a61
+  docs/specs/notes-graph.md: 639eca406212
 ---
 # Notes graph
 
