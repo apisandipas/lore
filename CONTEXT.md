@@ -10,6 +10,7 @@ A CLI that indexes typed Markdown notes and their links to code.
 - `src/parse.ts` reads one note into the shared note model through its syntax: title, summary, links and checklist. `src/graph.ts` builds the note graph: each note's schema type, link and name resolution (`resolve`, `find`), code citations, anchors and supersede chains.
 - `src/anchor.ts`: what an anchor is (path, glob or `symbol:`), the files it governs, whether it covers one file, and how specific it is. Graph hands them out with `anchor(text)`; listing a symbol's files uses rg, testing one file a pattern that reads words as `rg -w` does (`wordRegExp` in `src/tree.ts`).
 - `src/validate.ts`: what is wrong with a field's value. `check` asks it of what notes hold, `new` and `set` of what they would write.
+- `src/change.ts`: `planChange`, the fields `new` and `set` are about to write, from their assignments: which fields a note may take, one value or a list, names written as `[[type/stem]]` links, `+=` merged without a note twice, every value validated before anything is written. The commands keep only the rules of their own flags.
 - `src/edit.ts`: every write to a note, frontmatter or `#+` fields and checkboxes, read from and saved to the tree; the syntax does the text.
 - `src/plan.ts`: efforts and specs, freezing, drift, and specs changed after their efforts shipped. `check`, `next` and `freeze` ask it; `next` keeps the ranking.
 
