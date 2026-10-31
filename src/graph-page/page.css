@@ -46,6 +46,9 @@
   ul.links li:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   ul.links .dot { width: 8px; height: 8px; border-radius: 50%; align-self: center; }
   ul.links .dot.code { border-radius: 2px; }
+  a.note-link.missing { color: var(--muted); text-decoration-style: dashed; }
+  .dot.ghost { width: 8px; height: 8px; border-radius: 50%; border: 1.5px dashed var(--muted); box-sizing: border-box; background: transparent; }
+  ul.links li.cursor { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
   ul.links .t { line-height: 1.35; }
   ul.links .tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
   .tag { font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; white-space: nowrap; }

@@ -28,11 +28,15 @@ function refilter() {
   const keep = (n) => {
     if (focus && !focus.set.has(n)) return false;
     if (n.kind === "code") return show.code;
+    if (n.kind === "missing") return true;
     if (!show.types.has(n.type && data.types.includes(n.type) ? n.type : "untyped")) return false;
     if (!show.old && FADED.has(n.status)) return false;
     return true;
   };
   let shown = new Set(nodes.filter(keep));
+  // A ghost shows only beside a note or file that links to it.
+  const linkedToGhost = new Set(edges.filter((e) => shown.has(e.s) && e.t.kind === "missing").map((e) => e.t));
+  shown = new Set([...shown].filter((n) => n.kind !== "missing" || linkedToGhost.has(n)));
   visEdges = edges.filter((e) => shown.has(e.s) && shown.has(e.t));
   if (!show.orphans) {
     const linked = new Set(visEdges.flatMap((e) => [e.s, e.t]));
@@ -116,12 +120,12 @@ function draw() {
 
   for (const e of visEdges) {
     const on = !L || (L.has(e.s) && L.has(e.t) && (matches || e.s === (hover || selected) || e.t === (hover || selected)));
-    const code = e.kind === "anchor" || e.kind === "cites";
-    const field = !code && e.kind !== "link";
-    ctx.globalAlpha = on ? (L ? 0.95 : 0.55) : 0.07;
+    const code = e.kind === "anchor" || e.kind === "cites", ghost = e.t.kind === "missing";
+    const field = !code && !ghost && e.kind !== "link";
+    ctx.globalAlpha = (on ? (L ? 0.95 : 0.55) : 0.07) * (ghost ? 0.7 : 1);
     ctx.strokeStyle = code ? codeC : edgeC;
     ctx.lineWidth = (field ? 1.6 : code ? 1.2 : 0.8) / Math.sqrt(k);
-    ctx.setLineDash(e.kind === "supersedes" ? [6 / k, 4 / k] : code ? [2 / k, 3 / k] : []);
+    ctx.setLineDash(e.kind === "supersedes" || ghost ? [6 / k, 4 / k] : code ? [2 / k, 3 / k] : []);
     const dx = e.t.x - e.s.x, dy = e.t.y - e.s.y, d = Math.hypot(dx, dy) || 1, rt = radius(e.t) + 2;
     const ex = e.t.x - (dx / d) * rt, ey = e.t.y - (dy / d) * rt;
     ctx.beginPath(); ctx.moveTo(e.s.x, e.s.y); ctx.lineTo(ex, ey); ctx.stroke();
@@ -138,6 +142,15 @@ function draw() {
 
   for (const n of vis) {
     const r = radius(n), on = !L || L.has(n), col = n.kind === "code" ? codeC : typeColor(n.type);
+    if (n.kind === "missing") {
+      // A link to no note: a faint dashed ring where the note would be.
+      ctx.globalAlpha = on ? 0.6 : 0.1;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = bg; ctx.fill();
+      ctx.setLineDash([2 / k, 2 / k]); ctx.lineWidth = 1.2 / Math.sqrt(k); ctx.strokeStyle = muted; ctx.stroke(); ctx.setLineDash([]);
+      if (n === selected) { ctx.beginPath(); ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2); ctx.lineWidth = 1.5 / k; ctx.strokeStyle = ink; ctx.stroke(); }
+      continue;
+    }
     ctx.globalAlpha = (on ? 1 : 0.15) * (FADED.has(n.status) ? 0.4 : 1);
     ctx.beginPath();
     if (n.kind === "code") ctx.rect(n.x - r, n.y - r, 2 * r, 2 * r);
@@ -165,7 +178,7 @@ function draw() {
   }
   for (const i of keepLabels(labels)) {
     const { n, a, on, text, x, y } = labels[i];
-    ctx.globalAlpha = a * (FADED.has(n.status) ? 0.5 : 1);
+    ctx.globalAlpha = a * (FADED.has(n.status) || n.kind === "missing" ? 0.5 : 1);
     ctx.fillStyle = on ? ink : muted;
     ctx.fillText(text, x, y);
   }
@@ -209,13 +222,20 @@ canvas.addEventListener("wheel", (ev) => {
   view.x = ev.clientX - W / 2 - before.x * view.k; view.y = ev.clientY - H / 2 - before.y * view.k;
   draw();
 }, { passive: false });
-addEventListener("keydown", (ev) => { if (ev.key === "Escape") { select(null); search.value = ""; matches = null; draw(); } });
 
 // Details.
 const details = document.getElementById("details"), body = document.getElementById("body");
 
+function go(id) {
+  const t = byId.get(id);
+  if (!t) return;
+  if (t.kind === "code" && !show.code) { show.code = true; showCode.checked = true; refilter(); }
+  select(t); center(t);
+}
+
 function select(n) {
   selected = n;
+  syncHash();
   if (!n) { details.classList.remove("open"); draw(); return; }
   const path = n.kind === "note" ? n.id : n.id.startsWith("file:") ? n.id.slice(5) : null;
 
@@ -230,7 +250,7 @@ function select(n) {
     }
   }
   const row = ({ n: o, kinds }) => `<li data-id="${esc(o.id)}">
-      <span class="dot${o.kind === "code" ? " code" : ""}" style="background:${o.kind === "code" ? css("--code") : typeColor(o.type)}"></span>
+      <span class="dot${o.kind === "code" ? " code" : o.kind === "missing" ? " ghost" : ""}" style="background:${o.kind === "code" ? css("--code") : o.kind === "missing" ? "transparent" : typeColor(o.type)}"></span>
       <span class="t">${esc(o.kind === "code" ? o.name : o.title)}</span>
       <span class="tags">${kinds.map((k) => `<span class="tag">${esc(k)}</span>`).join("")}</span></li>`;
   const section = (title, rows, open = true) => rows.size
@@ -239,6 +259,8 @@ function select(n) {
 
   const kicker = n.kind === "code"
     ? `<span class="dot" style="background:${css("--code")};border-radius:2px"></span>Code`
+    : n.kind === "missing"
+    ? `<span class="dot ghost"></span>Missing note · <span class="warn">${esc(n.summary)}</span>`
     : `<span class="dot" style="background:${typeColor(n.type)}"></span>${esc(n.type ?? "Note")}${n.status ? ` · ${esc(n.status)}` : ""}${n.drift ? ` <span class="warn">· its spec changed since it was frozen</span>` : ""}`;
   const org = /\.org$/i.test(n.id);
   const rendered = n.body ? renderBody(n.body, org, n.refs ?? {}, n.title) : "";
@@ -246,7 +268,7 @@ function select(n) {
     <div class="kicker">${kicker}</div>
     <h2 class="title">${esc(n.title)}</h2>
     <div class="name">${esc(n.kind === "note" ? n.name : path ?? n.name)}</div>
-    ${!rendered && n.summary ? `<p class="lede">${esc(n.summary)}</p>` : ""}
+    ${!rendered && n.summary && n.kind !== "missing" ? `<p class="lede">${esc(n.summary)}</p>` : ""}
     <div class="actions">
       <button id="focusBtn">Focus here</button>
       ${data.url && path ? `<a class="button" target="_blank" rel="noopener" href="${esc(data.url + path)}">Open on GitHub</a>` : ""}
@@ -258,15 +280,10 @@ function select(n) {
     ${n.kind === "note" ? `<div class="path">${esc(n.id)}</div>` : ""}`;
   details.classList.add("open");
   details.scrollTop = 0;
-  const go = (id) => {
-    const t = byId.get(id);
-    if (!t) return;
-    if (t.kind === "code" && !show.code) { show.code = true; showCode.checked = true; refilter(); }
-    select(t); center(t);
-  };
+  cursor = -1;
   body.querySelectorAll("ul.links li").forEach((li) => li.addEventListener("click", () => go(li.dataset.id)));
   body.querySelectorAll("a.note-link").forEach((a) => a.addEventListener("click", () => go(a.dataset.id)));
-  document.getElementById("focusBtn").addEventListener("click", () => focusOn(n));
+  document.getElementById("focusBtn").addEventListener("click", () => focusOn(n, focus?.depth ?? 2));
   draw();
 }
 document.getElementById("close").addEventListener("click", () => select(null));
@@ -295,7 +312,8 @@ function focusOn(n, depth = 2) {
     for (const m of frontier) for (const e of [...out.get(m), ...inn.get(m)]) { const o = e.s === m ? e.t : e.s; if (!set.has(o)) { set.add(o); next.push(o); } }
     frontier = next;
   }
-  focus = { node: n, set };
+  focus = { node: n, set, depth };
+  syncHash();
   document.getElementById("focusLabel").textContent = `Within ${depth === 1 ? "one link" : `${depth} links`} of ${n.title}`;
   focusbar.classList.add("open");
   focusbar.style.left = `${innerWidth / 2 + shift()}px`;
@@ -303,7 +321,8 @@ function focusOn(n, depth = 2) {
   for (let i = 0; i < 150; i++) tick();
   fit(); draw();
 }
-document.getElementById("unfocus").addEventListener("click", () => { focus = null; focusbar.classList.remove("open"); focusbar.style.left = ""; refilter(); for (let i = 0; i < 100; i++) tick(); fit(); draw(); });
+function unfocus() { focus = null; syncHash(); focusbar.classList.remove("open"); focusbar.style.left = ""; refilter(); for (let i = 0; i < 100; i++) tick(); fit(); draw(); }
+document.getElementById("unfocus").addEventListener("click", unfocus);
 
 // Controls.
 document.getElementById("repo").textContent = data.repo;
@@ -318,7 +337,7 @@ for (const t of typeKeys) {
   typesEl.append(row);
 }
 const showCode = document.getElementById("showCode");
-showCode.addEventListener("change", (ev) => { show.code = ev.target.checked; refilter(); });
+showCode.addEventListener("change", (ev) => { show.code = ev.target.checked; syncHash(); refilter(); });
 document.getElementById("showOld").addEventListener("change", (ev) => { show.old = ev.target.checked; refilter(); });
 document.getElementById("showOrphans").addEventListener("change", (ev) => { show.orphans = ev.target.checked; refilter(); });
 const search = document.getElementById("search");
@@ -330,10 +349,51 @@ search.addEventListener("input", () => {
 search.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && matches?.size) { const n = [...matches][0]; matches = null; search.value = ""; select(n); center(n); } });
 
 addEventListener("resize", resize);
-// #code shows the code layer; #focus=<name> (and depth=<n>) opens on a note's
-// local graph, as `lore graph <note>` asks through data.focus.
+// Keyboard: Esc clears the search, closes the panel, then leaves focus; / searches;
+// the arrows step through the open note's links, and Enter follows one.
+let cursor = -1;
+addEventListener("keydown", (ev) => {
+  const typing = ev.target instanceof HTMLInputElement;
+  if (ev.key === "Escape") {
+    if (typing && search.value) { search.value = ""; matches = null; draw(); }
+    else if (typing) search.blur();
+    else if (selected) select(null);
+    else if (focus) unfocus();
+    return;
+  }
+  if (typing || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key === "/") { ev.preventDefault(); search.focus(); return; }
+  const rows = selected ? [...body.querySelectorAll("ul.links li")].filter((li) => li.offsetParent) : [];
+  const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[ev.key];
+  if (step && rows.length) {
+    ev.preventDefault();
+    cursor = cursor < 0 ? (step > 0 ? 0 : rows.length - 1) : (cursor + step + rows.length) % rows.length;
+    rows.forEach((li, i) => li.classList.toggle("cursor", i === cursor));
+    rows[cursor].scrollIntoView({ block: "nearest" });
+    hover = byId.get(rows[cursor].dataset.id) ?? null; draw();
+  } else if (ev.key === "Enter" && rows[cursor]) {
+    hover = null; go(rows[cursor].dataset.id);
+  }
+});
+
+// The address keeps the view: #note=<name> for the open note, #focus=<name>
+// (and depth=<n>) for a local graph, #code for the code layer. `lore graph
+// <note>` asks for a focus through data.focus instead.
+const nameCount = new Map();
+for (const n of nodes) nameCount.set(n.name, (nameCount.get(n.name) ?? 0) + 1);
+const nameOf = (n) => (nameCount.get(n.name) === 1 ? n.name : n.id);
+const byName = (name) => (nameCount.get(name) === 1 ? nodes.find((n) => n.name === name) : undefined) ?? byId.get(name);
+let restoring = true;
+const enc = (n) => encodeURIComponent(nameOf(n)).replace(/%2F/g, "/");
+function syncHash() {
+  if (restoring) return;
+  const p = [];
+  if (selected) p.push(`note=${enc(selected)}`);
+  if (focus) p.push(`focus=${enc(focus.node)}`, ...(focus.depth !== 2 ? [`depth=${focus.depth}`] : []));
+  if (show.code) p.push("code");
+  try { history.replaceState(null, "", p.length ? `#${p.join("&")}` : location.pathname + location.search); } catch {}
+}
 const hash = new URLSearchParams(location.hash.slice(1));
-const byName = (name) => nodes.find((n) => n.name === name) ?? byId.get(name);
 if (hash.has("code")) { show.code = true; showCode.checked = true; }
 refilter();
 for (let i = 0; i < 300; i++) tick();
@@ -342,3 +402,9 @@ resize(); fit(); draw();
 const start = hash.has("focus") ? { name: hash.get("focus"), depth: Number(hash.get("depth")) || 2 } : data.focus;
 const startNode = start && byName(start.name);
 if (startNode) { select(startNode); focusOn(startNode, start.depth); }
+const noteNode = hash.has("note") && byName(hash.get("note"));
+if (noteNode) { if (noteNode.kind === "code" && !show.code) { show.code = true; showCode.checked = true; refilter(); } select(noteNode); if (!startNode) center(noteNode); }
+restoring = false;
+syncHash();
+// An address edited by hand, or a link followed within the page: start over from it.
+addEventListener("hashchange", () => location.reload());

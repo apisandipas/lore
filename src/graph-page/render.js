@@ -11,7 +11,7 @@ export function renderBody(text, org, refs, title) {
   const hold = (c) => `\u0000${codes.push(c) - 1}\u0000`;
   const noteLink = (target, label) => {
     const t = target.trim(), id = refs[t] ?? Object.values(refs).find((p) => t.startsWith("file:") && p.endsWith(t.replace(/^file:(\.\.\/)*/, "")));
-    if (id) return `<a class="note-link" data-id="${esc(id)}">${label}</a>`;
+    if (id) return `<a class="note-link${id.startsWith("missing:") ? " missing" : ""}" data-id="${esc(id)}">${label}</a>`;
     // A [[link]] names a note; only a URL in one is followed.
     return /^(https?|mailto):/i.test(t) ? link(t, label, "dead") : `<span class="dead">${label}</span>`;
   };

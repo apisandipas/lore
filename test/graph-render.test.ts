@@ -13,6 +13,7 @@ describe("graph page rendering", () => {
     expect(body).toContain('<a href="https://x.org" target="_blank" rel="noopener">b</a>');
     expect(body).toContain('<a class="note-link" data-id="docs/specs/x.md">spec/x</a>');
     expect(body).toContain('<span class="dead">gone</span>');
+    expect(renderBody("[[gone]]", false, { gone: "missing:gone" }, "T")).toBe('<p><a class="note-link missing" data-id="missing:gone">gone</a></p>');
     expect(renderBody("[[javascript:alert(1)][x]] [[https://x.org][y]]", true, {}, "T")).toBe('<p><span class="dead">x</span> <a href="https://x.org" target="_blank" rel="noopener">y</a></p>');
   });
 
