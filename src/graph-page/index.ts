@@ -20,6 +20,19 @@ export function graphPage(data: GraphData, focus?: { name: string; depth: number
   return (page as unknown as string).replace(/\/\*(TITLE|STYLE|DATA|SCRIPT)\*\//g, (_, k: string) => parts[k]!);
 }
 
+// The branch "Open on GitHub" links to: the current one when origin has it,
+// else the origin branch nearest it (the fewest commits behind HEAD; origin's
+// default on a tie), so a local or deleted branch gives no dead links.
+export function githubBranch(current: string, origin: { branch: string; behind: number }[], originDefault: string): string {
+  if (current && origin.some((o) => o.branch === current)) return current;
+  const rank = (o: { branch: string; behind: number }) => [o.behind, o.branch === originDefault ? 0 : 1, o.branch] as const;
+  const nearest = [...origin].sort((x, y) => {
+    const [a, b] = [rank(x), rank(y)];
+    return a[0] - b[0] || a[1] - b[1] || (a[2] < b[2] ? -1 : 1);
+  })[0];
+  return nearest?.branch ?? "";
+}
+
 // Where "Open on GitHub" points: the blob URL for the branch, when origin is on GitHub.
 export function githubUrl(remote: string, branch: string): string | null {
   const m = /^(?:git@github\.com:|ssh:\/\/git@github\.com\/|https:\/\/(?:[^@/]+@)?github\.com\/)([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(remote.trim());

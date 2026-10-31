@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadGraph } from "../src/graph";
-import { githubUrl, graphPage } from "../src/graph-page";
+import { githubBranch, githubUrl, graphPage } from "../src/graph-page";
 import { graphData } from "../src/graph-page/data";
 import { run } from "../src/main";
 import { memoryTree } from "../src/tree";
@@ -112,6 +112,19 @@ describe("graph page", () => {
     expect(githubUrl("git@gitlab.com:o/r.git", "dev")).toBeNull();
     expect(githubUrl("", "dev")).toBeNull();
     expect(githubUrl("git@github.com:o/r.git", "")).toBeNull();
+  });
+
+  test("Open on GitHub links to the current branch when origin has it, else the nearest one origin has", () => {
+    const origin = [
+      { branch: "main", behind: 9 },
+      { branch: "develop", behind: 2 },
+      { branch: "feat/old", behind: 2 },
+    ];
+    expect(githubBranch("main", origin, "main")).toBe("main");
+    expect(githubBranch("fix/local", origin, "main")).toBe("develop");
+    expect(githubBranch("fix/local", origin, "feat/old")).toBe("feat/old");
+    expect(githubBranch("", [{ branch: "main", behind: 0 }, { branch: "develop", behind: 0 }], "main")).toBe("main");
+    expect(githubBranch("feat/x", [], "")).toBe("");
   });
 
   test("lore graph <note> opens focused on it, two links deep unless --depth says", async () => {
