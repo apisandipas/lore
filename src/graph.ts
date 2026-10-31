@@ -8,6 +8,10 @@ import type { Tree } from "./tree";
 export type Citation = { file: string; line: number; target: string };
 export type Resolution = { note?: Note; candidates: Note[] };
 export type Backlink = { from: Note; link: Link };
+// A link or citation a new note would make ambiguous, and the note it meant.
+export type Shadowed = { file: string; line: number; target: string; was: Note };
+// What resolution reads of a note, so a note not written yet can be asked about.
+export type Named = Pick<Note, "path" | "stem" | "name" | "aliases">;
 
 export type Graph = {
   repo: Repo;
@@ -18,6 +22,9 @@ export type Graph = {
   // A link target or a name from the command line: a path, a qualified name
   // (spec/auth, decision/0002), a filename, an alias, or a number prefix. An exact path wins over an ambiguous name.
   resolve(target: string): Resolution;
+  // The links and citations that name one note now and would name two once
+  // this note exists: found by resolution itself, before the note is written.
+  shadowedBy(note: Named): Shadowed[];
   // resolve, with an error saying why nothing or too much matched.
   find(ref: string): { note?: Note; error?: string };
   backlinks(note: Note): Backlink[];
@@ -63,9 +70,10 @@ export function loadGraph(tree: Tree): Graph {
   const keyOf = (s: string) => s.trim().replace(/^\.\//, "").replace(NOTE_FILE, "").toLowerCase();
   const relToNotes = (p: string) => (notesDir !== "." && p.startsWith(`${notesDir}/`) ? p.slice(notesDir.length + 1) : p);
 
-  const resolve = (target: string): Resolution => {
+  // Resolution among a pool of notes: the graph's own, or those plus one to come.
+  const resolveIn = <N extends Named>(pool: N[], target: string): { note?: N; candidates: N[] } => {
     const t = keyOf(target);
-    let candidates = notes.filter(
+    let candidates = pool.filter(
       (n) =>
         keyOf(n.path) === t ||
         keyOf(relToNotes(n.path)) === t ||
@@ -74,11 +82,13 @@ export function loadGraph(tree: Tree): Graph {
         n.aliases.some((a) => keyOf(a) === t),
     );
     // An id alone ("0007", "D-12") names the note whose filename starts with it.
-    if (!candidates.length && /\d$/.test(t)) candidates = notes.filter((n) => n.stem.toLowerCase().startsWith(`${t}-`) || n.name.toLowerCase().startsWith(`${t}-`));
-    const exact = candidates.length > 1 ? byPath.get(target.trim().replace(/^\.\//, "")) : undefined;
+    if (!candidates.length && /\d$/.test(t)) candidates = pool.filter((n) => n.stem.toLowerCase().startsWith(`${t}-`) || n.name.toLowerCase().startsWith(`${t}-`));
+    const path = target.trim().replace(/^\.\//, "");
+    const exact = candidates.length > 1 ? candidates.find((n) => n.path === path) : undefined;
     if (exact) return { note: exact, candidates: [exact] };
     return { note: candidates.length === 1 ? candidates[0] : undefined, candidates };
   };
+  const resolve = (target: string): Resolution => resolveIn(notes, target);
 
   const find = (ref: string): { note?: Note; error?: string } => {
     const r = resolve(ref);
@@ -94,6 +104,12 @@ export function loadGraph(tree: Tree): Graph {
     .map((h) => ({ file: h.file, line: h.line, target: h.text.slice("lore:".length) }))
     .filter((c) => fileSet.has(c.file) && !isNoteFile(c.file));
 
+  const shadowedBy = (note: Named): Shadowed[] =>
+    [...notes.flatMap((n) => n.links.map((l) => ({ file: n.path, line: l.line, target: l.target }))), ...citations].flatMap((site) => {
+      const was = resolve(site.target).note;
+      return was && resolveIn<Named>([...notes, note], site.target).note !== was ? [{ ...site, was }] : [];
+    });
+
   const anchor = anchors({ tree, files: repo.files, isNoteFile });
 
   const backlinks = (note: Note): Backlink[] =>
@@ -104,7 +120,7 @@ export function loadGraph(tree: Tree): Graph {
     return def ? note.def === def : note.type?.toLowerCase() === type.toLowerCase();
   };
 
-  return { repo, notes, byPath, citations, isNoteFile, resolve, find, backlinks, anchor, isA };
+  return { repo, notes, byPath, citations, isNoteFile, resolve, find, shadowedBy, backlinks, anchor, isA };
 }
 
 // The names of several notes, for saying which ones a name could mean; paths

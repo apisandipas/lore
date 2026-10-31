@@ -1,8 +1,8 @@
 import { planChange, type Change } from "../change";
 import { createNote, type Fields } from "../edit";
-import type { Graph } from "../graph";
+import { qualify, type Graph } from "../graph";
 import { markSuperseded, planSupersede, superseding, SUPERSEDES } from "../supersede";
-import { linkTargets, NOTE_FILE, type Note } from "../parse";
+import { linkTargets, type Note } from "../parse";
 import { idPattern } from "../schema";
 import type { Result } from "./shared";
 
@@ -81,13 +81,9 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const template = tree.read(`.lore/templates/${def.name}.${def.format}`);
   const body = template?.replaceAll("{{title}}", title) ?? `${def.format === "org" ? "*" : "#"} ${title}\n`;
 
-  // Bare names that meant one note now mean two. Found before writing, while
-  // they still resolve; check reports them from now on.
-  const bare = (t: string) => t.trim().replace(/^\.\//, "").replace(NOTE_FILE, "").toLowerCase() === stem.toLowerCase();
-  const clashes = [
-    ...g.notes.flatMap((n) => n.links.map((l) => ({ at: `${n.path}:${l.line}`, target: l.target, was: g.resolve(l.target).note }))),
-    ...g.citations.map((c) => ({ at: `${c.file}:${c.line}`, target: c.target, was: g.resolve(c.target).note })),
-  ].filter((c) => c.was && bare(c.target));
+  // Names that meant one note now mean two. Found before writing, while they
+  // still resolve; check reports them from now on.
+  const clashes = g.shadowedBy({ path, stem, name: qualify(def.name, stem), aliases: [] }).map((c) => ({ ...c, at: `${c.file}:${c.line}` }));
 
   createNote(tree, path, fields, body);
   markSuperseded(tree, olds);

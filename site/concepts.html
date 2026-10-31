@@ -91,7 +91,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
   spec/due-dates  docs/specs/due-dates.md</span></code></pre>
   </div>
   <aside class="sidenote">The type, not the directory, qualifies the name, so moving a type’s <code>dir</code> breaks no links.</aside>
-  <p>When <code>lore new</code> gives a second note a filename that bare links already use, it lists those links and the name each one meant, so you can qualify them before <code>lore check</code> complains.</p>
+  <p>When <code>lore new</code> gives a second note a filename that bare links already use, or a number they name a note by, as in <code>[[0003]]</code>, it lists those links and the name each one meant, so you can qualify them before <code>lore check</code> complains.</p>
 
   <h2 id="links">Links</h2>
   <p>Notes link to each other with double brackets, by <a href="#names">name</a>: <code>[[decision/0001]]</code> finds <code>0001-hard-expiry.md</code>. A filename, path or alias works too while it names one note. A link inside a frontmatter field, such as <code>spec: "[[spec/auth]]"</code>, is an edge <code>lore context</code> follows: a file governed by this decision is shown its spec too.</p>
