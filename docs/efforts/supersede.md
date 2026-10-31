@@ -1,6 +1,6 @@
 ---
 type: Effort
-status: active
+status: done
 specs: ["[[spec/lore-cli]]"]
 issue: https://github.com/apisandipas/lore/issues/6
 frozen:
