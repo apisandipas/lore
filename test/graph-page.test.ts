@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadGraph } from "../src/graph";
+import { githubUrl, graphPage } from "../src/graph-page";
 import { graphData } from "../src/graph-page/data";
 import { run } from "../src/main";
 import { memoryTree } from "../src/tree";
@@ -70,5 +74,43 @@ describe("graph data", () => {
     const { code, out } = await run(["graph", "--json"], tree());
     expect(code).toBe(0);
     expect(JSON.parse(out).nodes).toHaveLength(data().nodes.length);
+  });
+});
+
+// The data a page carries, read back out of it.
+const embedded = (page: string) => JSON.parse(/<script type="application\/json" id="data">(.*?)<\/script>/s.exec(page)![1]!);
+
+describe("graph page", () => {
+  test("lore graph writes the page to --out and prints its path", async () => {
+    const out = join(mkdtempSync(join(tmpdir(), "lore-graph-")), "g.html");
+    expect(await run(["graph", "--out", out], tree())).toEqual({ code: 0, out: `${out}\n` });
+    const page = readFileSync(out, "utf8");
+    expect(page.startsWith("<!doctype html>")).toBe(true);
+    expect(page).toContain("<title>memory: lore graph</title>");
+    expect(page).not.toMatch(/\/\*(TITLE|STYLE|DATA|SCRIPT)\*\//);
+    expect(page).not.toMatch(/<(script|link)[^>]+(src|href)=/);
+    expect(embedded(page).nodes).toHaveLength(data().nodes.length);
+  });
+
+  test("a note's text survives the page as written, </script> and $' included", () => {
+    const t = memoryTree({ ".lore/schema.yml": SCHEMA, "docs/specs/x.md": "# X\n\nEnds </script><script>alert(1)</script> and $' and $& and $1.\n" });
+    const page = graphPage(graphData(loadGraph(t), { url: null }));
+    expect(page.match(/<\/script>/g)).toHaveLength(2);
+    expect(embedded(page).nodes[0].body).toContain("</script><script>alert(1)</script> and $' and $& and $1.");
+  });
+
+  test("the same notes give the same bytes", () => {
+    expect(graphPage(data())).toBe(graphPage(data()));
+  });
+
+  test("Open on GitHub points at the branch, only for a GitHub origin", () => {
+    const url = "https://github.com/o/r/blob/dev/";
+    expect(githubUrl("git@github.com:o/r.git", "dev")).toBe(url);
+    expect(githubUrl("https://github.com/o/r", "dev")).toBe(url);
+    expect(githubUrl("https://user@github.com/o/r.git\n", "dev")).toBe(url);
+    expect(githubUrl("ssh://git@github.com/o/r.git", "dev")).toBe(url);
+    expect(githubUrl("git@gitlab.com:o/r.git", "dev")).toBeNull();
+    expect(githubUrl("", "dev")).toBeNull();
+    expect(githubUrl("git@github.com:o/r.git", "")).toBeNull();
   });
 });
