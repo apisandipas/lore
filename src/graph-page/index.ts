@@ -2,6 +2,7 @@ import type { GraphData } from "./data";
 import style from "./page.css" with { type: "text" };
 import page from "./page.html" with { type: "text" };
 import script from "./page.js" with { type: "text" };
+import render from "./render.js" with { type: "text" };
 
 // The graph page: one file, nothing loaded from elsewhere (lore:decision/0001),
 // and the same bytes for the same notes. The data is JSON in a script tag;
@@ -12,7 +13,8 @@ export function graphPage(data: GraphData, focus?: { name: string; depth: number
     TITLE: `${focus ? `${focus.name} in ` : ""}${data.repo}: lore graph`.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`),
     STYLE: style,
     DATA: JSON.stringify(focus ? { ...data, focus } : data).replace(/</g, "\\u003c"),
-    SCRIPT: script,
+    // One module: render.js, then page.js without its import of it.
+    SCRIPT: `${render}\n${script.replace(/^import .*\n/m, "")}`,
   };
   // A function replacement, so `$'` and friends in a note stay as written.
   return (page as unknown as string).replace(/\/\*(TITLE|STYLE|DATA|SCRIPT)\*\//g, (_, k: string) => parts[k]!);

@@ -1,4 +1,6 @@
 // The graph page. Its data is the JSON in #data, written by `lore graph`.
+import { esc, keepLabels, renderBody, seed } from "./render.js";
+
 const data = JSON.parse(document.getElementById("data").textContent);
 const PALETTE = ["#7c6cf0", "#e0915a", "#3fa7a0", "#d4699a", "#c9a227", "#5b8fd6", "#8bb04a"];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -6,10 +8,8 @@ const typeColor = (t) => (t && data.types.includes(t) ? PALETTE[data.types.index
 const FADED = new Set(["superseded", "retired"]);
 const HOLLOW = new Set(["draft", "planned", "proposed"]);
 
-const nodes = data.nodes.map((n, i) => {
-  const a = i * 2.39996, r = 12 * Math.sqrt(i + 1);
-  return { ...n, x: Math.cos(a) * r, y: Math.sin(a) * r, vx: 0, vy: 0, deg: 0 };
-});
+const spread = 12 * Math.sqrt(data.nodes.length + 1);
+const nodes = data.nodes.map((n) => ({ ...n, ...seed(n.id, spread), vx: 0, vy: 0, deg: 0 }));
 const byId = new Map(nodes.map((n) => [n.id, n]));
 const edges = data.edges.map((e) => ({ ...e, s: byId.get(e.source), t: byId.get(e.target) })).filter((e) => e.s && e.t);
 const out = new Map(), inn = new Map();
@@ -51,7 +51,8 @@ function tick() {
     for (let j = i + 1; j < vis.length; j++) {
       const b = vis[j];
       let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
-      if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+      // Two nodes on one spot: push them apart along a fixed direction, not a random one.
+      if (d2 < 1) { dx = ((i * 7 + j * 13) % 11) / 11 - 0.5 || 0.3; dy = ((i * 11 + j * 7) % 13) / 13 - 0.5 || -0.3; d2 = 1; }
       if (d2 > 250000) continue;
       const f = (700 * alpha) / d2;
       a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
@@ -150,15 +151,23 @@ function draw() {
   // Labels fade in as you zoom, and always show for what is lit.
   ctx.font = `${12 / k}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "top";
+  const labels = [];
   for (const n of vis) {
     // A label shows once its node is big enough on screen: hubs first, the rest as you zoom.
     const zoomAlpha = hubs.has(n) ? 1 : Math.min(1, Math.max(0, (radius(n) * k - 5.5) / 2.5));
     const on = L && L.has(n), a = on ? 1 : L ? 0 : zoomAlpha;
     if (a <= 0.02) continue;
+    const full = n.kind === "note" ? n.title : n.name, text = full.length > 42 ? full.slice(0, 41) + "…" : full;
+    const y = n.y + radius(n) + 3 / k;
+    // Lit and selected labels win a collision, then the best-linked.
+    const rank = (n === selected ? 2e6 : on ? 1e6 : 0) + (hubs.has(n) ? 1e3 : 0) + n.deg;
+    labels.push({ n, a, on, text, x: n.x, y, w: ctx.measureText(text).width + 4 / k, h: 14 / k, rank });
+  }
+  for (const i of keepLabels(labels)) {
+    const { n, a, on, text, x, y } = labels[i];
     ctx.globalAlpha = a * (FADED.has(n.status) ? 0.5 : 1);
     ctx.fillStyle = on ? ink : muted;
-    const label = n.kind === "code" ? n.name : n.title;
-    ctx.fillText(label.length > 42 ? label.slice(0, 41) + "…" : label, n.x, n.y + radius(n) + 3 / k);
+    ctx.fillText(text, x, y);
   }
   ctx.globalAlpha = 1;
 }
@@ -204,109 +213,6 @@ addEventListener("keydown", (ev) => { if (ev.key === "Escape") { select(null); s
 
 // Details.
 const details = document.getElementById("details"), body = document.getElementById("body");
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-
-// A note's body, rendered for reading: Markdown or Org, enough of each for
-// specs and decisions. [[links]] to other notes select them in the graph.
-function renderBody(text, org, refs, title) {
-  const codes = [];
-  const hold = (c) => `\u0000${codes.push(c) - 1}\u0000`;
-  const noteLink = (target, label) => {
-    const t = target.trim(), id = refs[t] ?? Object.values(refs).find((p) => t.startsWith("file:") && p.endsWith(t.replace(/^file:(\.\.\/)*/, "")));
-    if (id) return `<a class="note-link" data-id="${esc(id)}">${label}</a>`;
-    if (/^https?:/.test(t)) return `<a href="${t}" target="_blank" rel="noopener">${label}</a>`;
-    return `<span class="dead">${label}</span>`;
-  };
-  const inline = (s) => {
-    let o = esc(s);
-    o = o.replace(/`([^`]+)`/g, (_, c) => hold(c));
-    if (org) o = o.replace(/(^|[\s(])[=~]([^=~\s](?:[^=~]*[^=~\s])?)[=~](?=$|[\s.,;:)])/g, (_, p, c) => p + hold(c));
-    o = org
-      ? o.replace(/\[\[([^\]]+)\](?:\[([^\]]*)\])?\]/g, (_, t, l) => noteLink(t, l || t.replace(/^file:/, "")))
-      : o.replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g, (_, t, l) => noteLink(t, l || t));
-    if (!org) o = o.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, l, u) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`);
-    o = org
-      ? o.replace(/(^|[\s(])\*([^*\s](?:[^*]*[^*\s])?)\*(?=$|[\s.,;:)])/g, "$1<strong>$2</strong>").replace(/(^|[\s(])\/([^/\s](?:[^/]*[^/\s])?)\/(?=$|[\s.,;:)])/g, "$1<em>$2</em>")
-      : o.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[\s(])[*_]([^*_\s](?:[^*_]*[^*_\s])?)[*_](?=$|[\s.,;:)])/g, "$1<em>$2</em>");
-    return o.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[i]}</code>`);
-  };
-
-  const out = [], lists = [];
-  let para = [], skippedTitle = false;
-  const flush = () => { if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`); para = []; };
-  const closeLists = (indent = -1) => { while (lists.length && lists.at(-1).indent > indent) out.push(`</${lists.pop().tag}>`); };
-  const lines = text.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i], t = line.trim();
-    const fence = org ? /^#\+begin_(\w+)/i.exec(t) : /^(```|~~~)/.exec(t);
-    if (fence) {
-      flush(); closeLists();
-      const body = [];
-      const end = org ? new RegExp(`^#\\+end_${fence[1]}`, "i") : new RegExp(`^${fence[1]}`);
-      for (i++; i < lines.length && !end.test(lines[i].trim()); i++) body.push(lines[i]);
-      out.push(org && /quote/i.test(fence[1]) ? `<blockquote>${inline(body.join(" "))}</blockquote>` : `<pre><code>${esc(body.join("\n"))}</code></pre>`);
-      continue;
-    }
-    if (org && (/^#\+\w+:/.test(t) || /^#\s/.test(t))) continue;
-    if (org && /^:[A-Z_]+:$/i.test(t)) { while (i < lines.length && !/^:END:$/i.test(lines[i].trim())) i++; continue; }
-    const head = org ? /^(\*+)\s+(.*?)(\s+:[\w@#%:]+:)?$/.exec(line) : /^(#{1,6})\s+(.*)$/.exec(line);
-    if (head) {
-      flush(); closeLists();
-      const text = head[2].replace(/^(TODO|DONE)\s+/, "");
-      if (!skippedTitle && head[1].length === 1 && text.trim() === title) { skippedTitle = true; continue; }
-      const level = Math.min(5, head[1].length + 1);
-      out.push(`<h${level}>${inline(text)}</h${level}>`);
-      continue;
-    }
-    if (!t) { flush(); continue; }
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t) && !org || org && /^-{5,}$/.test(t)) { flush(); closeLists(); out.push("<hr>"); continue; }
-    if (t.startsWith("|")) {
-      flush(); closeLists();
-      const rows = [];
-      for (; i < lines.length && lines[i].trim().startsWith("|"); i++) rows.push(lines[i].trim());
-      i--;
-      const sep = (r) => /^\|[\s:|+-]+\|?$/.test(r) && r.includes("-");
-      const cells = (r) => r.replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
-      const hasHead = rows.length > 1 && sep(rows[1]);
-      const data = rows.filter((r) => !sep(r));
-      const [first, ...rest] = data;
-      out.push(`<table>${hasHead ? `<thead><tr>${cells(first).map((c) => `<th>${c}</th>`).join("")}</tr></thead>` : ""}<tbody>${(hasHead ? rest : data).map((r) => `<tr>${cells(r).map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
-      continue;
-    }
-    if (!org && t.startsWith(">")) {
-      flush(); closeLists();
-      const q = [];
-      for (; i < lines.length && lines[i].trim().startsWith(">"); i++) q.push(lines[i].trim().replace(/^>\s?/, ""));
-      i--;
-      out.push(`<blockquote>${inline(q.join(" "))}</blockquote>`);
-      continue;
-    }
-    const item = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(line);
-    if (item && !(org && item[2] === "*" && !item[1])) {
-      flush();
-      const indent = item[1].length, tag = /\d/.test(item[2]) ? "ol" : "ul";
-      closeLists(indent);
-      if (!lists.length || lists.at(-1).indent < indent || lists.at(-1).tag !== tag) {
-        if (lists.length && lists.at(-1).indent === indent) out.push(`</${lists.pop().tag}>`);
-        lists.push({ indent, tag });
-        out.push(`<${tag}>`);
-      }
-      const box = /^\[([ xX-])\]\s*(.*)$/.exec(item[3]);
-      out.push(box
-        ? `<li class="task${/x/i.test(box[1]) ? " done" : ""}"><span class="box">${/x/i.test(box[1]) ? "✓" : box[1] === "-" ? "–" : ""}</span><span>${inline(box[2])}</span></li>`
-        : `<li>${inline(item[3])}</li>`);
-      continue;
-    }
-    if (lists.length && /^\s+/.test(line)) {
-      out[out.length - 1] = out.at(-1).replace(/(<\/span>)?<\/li>$/, (m, s) => ` ${inline(t)}${s ?? ""}</li>`);
-      continue;
-    }
-    closeLists();
-    para.push(t);
-  }
-  flush(); closeLists();
-  return out.join("\n");
-}
 
 function select(n) {
   selected = n;
