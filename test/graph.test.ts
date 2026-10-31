@@ -171,6 +171,29 @@ describe("resolving", () => {
   test("an ambiguous name lists what it matches", () => {
     expect(loadGraph(tree()).find("context").error).toBe("'context' matches 2 notes:\n  CONTEXT.md\n  src/CONTEXT.md");
   });
+
+  test("shadowedBy finds the links and citations a new note would make ambiguous, by the policy itself", () => {
+    const g = loadGraph(
+      repo({
+        "docs/specs/auth.md": "---\nstatus: draft\n---\n# Auth\n",
+        "docs/specs/0003-limits.md": "---\nstatus: draft\n---\n# Limits\n",
+        "docs/efforts/x.md": '---\nspecs: ["[[auth]]", "[[spec/auth]]", "[[docs/specs/auth.md]]"]\n---\n# X\n\nSee [[0003]].\n',
+        "src/a.ts": "// lore:auth\n",
+      }),
+    );
+    const sites = (note: { path: string; stem: string; name: string }) =>
+      g.shadowedBy({ ...note, aliases: [] }).map((s) => `${s.file}:${s.line} ${s.target} → ${s.was.name}`);
+    // Bare names go ambiguous; a qualified name or a path still means one note.
+    expect(sites({ path: "docs/efforts/auth.md", stem: "auth", name: "effort/auth" })).toEqual([
+      "docs/efforts/x.md:2 auth → spec/auth",
+      "src/a.ts:1 auth → spec/auth",
+    ]);
+    // A number prefix is shadowed by another note whose filename starts with it.
+    expect(sites({ path: "docs/efforts/0003-plan.md", stem: "0003-plan", name: "effort/0003-plan" })).toEqual([
+      "docs/efforts/x.md:6 0003 → spec/0003-limits",
+    ]);
+    expect(sites({ path: "docs/efforts/other.md", stem: "other", name: "effort/other" })).toEqual([]);
+  });
 });
 
 describe("validation", () => {
