@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { run } from "../src/main";
 import { markdown } from "../src/syntax/markdown";
 import { runInit, SKILLS } from "../src/commands/init";
+import { memoryTree } from "../src/tree";
 
 const fixture = join(import.meta.dir, "fixtures", "typed");
 const lore = (...argv: string[]) => run(argv, fixture);
@@ -363,10 +364,8 @@ describe("init", () => {
   };
 
   test("writes .lore/ without overwriting, and points at npx skills when the skills are missing", async () => {
-    const [dir, home] = [scratch(), scratch()];
-    mkdirSync(join(dir, ".lore"));
-    writeFileSync(join(dir, ".lore/schema.yml"), "notes: notes\n");
-    const { code, out } = await runInit(dir, { json: false, home });
+    const [tree, home] = [memoryTree({ ".lore/schema.yml": "notes: notes\n" }), scratch()];
+    const { code, out } = runInit(tree, { json: false, home });
     expect(code).toBe(0);
     expect(out).toBe(
       [
@@ -383,21 +382,20 @@ describe("init", () => {
         "",
       ].join("\n"),
     );
-    expect(readFileSync(join(dir, ".lore/schema.yml"), "utf8")).toBe("notes: notes\n");
+    expect(tree.read(".lore/schema.yml")).toBe("notes: notes\n");
+    expect(tree.read(".lore/templates/Spec.md")).toContain("{{title}}");
   });
 
   test("finds skills in the project or the home directory", async () => {
-    const [dir, home] = [scratch(), scratch()];
-    const install = (base: string, names: string[]) => {
-      for (const n of names) {
-        mkdirSync(join(base, n), { recursive: true });
-        writeFileSync(join(base, n, "SKILL.md"), `---\nname: ${n}\n---\n`);
-      }
-    };
-    install(join(home, ".claude/skills"), SKILLS.slice(0, 3));
-    expect((await runInit(dir, { json: false, home })).out).toContain("skills: lore-ship, lore-decide, lore-next missing");
-    install(join(dir, ".agents/skills"), SKILLS.slice(3));
-    expect(JSON.parse((await runInit(dir, { json: true, home })).out).skills).toEqual({
+    const [tree, home] = [memoryTree({}), scratch()];
+    // Skills under ~ are on the disk; the project's are in its tree.
+    for (const n of SKILLS.slice(0, 3)) {
+      mkdirSync(join(home, ".claude/skills", n), { recursive: true });
+      writeFileSync(join(home, ".claude/skills", n, "SKILL.md"), `---\nname: ${n}\n---\n`);
+    }
+    expect(runInit(tree, { json: false, home }).out).toContain("skills: lore-ship, lore-decide, lore-next missing");
+    for (const n of SKILLS.slice(3)) tree.write(`.agents/skills/${n}/SKILL.md`, `---\nname: ${n}\n---\n`);
+    expect(JSON.parse(runInit(tree, { json: true, home }).out).skills).toEqual({
       found: [".agents/skills", "~/.claude/skills"],
       missing: [],
     });

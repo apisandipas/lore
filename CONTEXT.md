@@ -4,7 +4,7 @@ A CLI that indexes typed Markdown notes and their links to code.
 
 `src/main.ts` dispatches commands; `noteJson` in `src/commands/shared.ts` is the note every `--json` output gives, so front ends can rely on its fields; `src/commands/` holds one file per command, and they stay thin. Each exports a `command` declaring its name, the flags it takes and whether it needs the graph; `src/commands/index.ts` lists them, and `main.ts` parses argv with that command's flags and `--json` only. `help.txt` is written by hand; a test keeps it naming each command's flags. Underneath:
 
-- `src/tree.ts`: the working tree, read, written and searched through one adapter: rg and the disk, or an in-memory map in tests. Nothing else touches the file system, apart from `lore init`.
+- `src/tree.ts`: the working tree, read, written and searched through one adapter: rg and the disk, or an in-memory map in tests. Nothing else touches the repo's files; `lore init` writes `.lore/` through it too, and reads `~` only to look for installed skills.
 - `src/repo.ts` reads `.lore/schema.yml` and lists files; `src/schema.ts` parses note types.
 - `src/syntax/` holds one adapter per note syntax, Markdown and Org, each reading and writing its own header (fields and their lines), headings, links, blocks and checkboxes. Whatever a syntax writes, it reads back as the same value; `test/syntax.test.ts` checks that round trip for both.
 - `src/parse.ts` reads one note into the shared note model through its syntax: title, summary, links and checklist. `src/graph.ts` builds the note graph: each note's schema type, code citations and anchors, and asks `src/names.ts` to resolve links and names (`resolve`, `find`, and `shadowedBy` for a note not written yet).

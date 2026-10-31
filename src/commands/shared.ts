@@ -1,6 +1,7 @@
 import type { ParseArgsOptionsConfig } from "node:util";
 import type { Graph } from "../graph";
 import type { Note } from "../parse";
+import type { Tree } from "../tree";
 
 export type Result = { code: number; out: string };
 
@@ -13,7 +14,7 @@ export type Input = { cwd: string; args: string[]; flags: Record<string, string 
 export type Command = { name: string; flags: ParseArgsOptionsConfig } & (
   | { graph?: true; run(g: Graph, input: Input): Result | Promise<Result> }
   // Runs without loading the graph: init writes the .lore/ a graph would read.
-  | { graph: false; run(input: Input): Result | Promise<Result> }
+  | { graph: false; run(tree: Tree, input: Input): Result | Promise<Result> }
 );
 
 // A note as every --json output gives it, the fields front ends rely on;

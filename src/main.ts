@@ -43,10 +43,11 @@ export async function run(
   const { values, positionals } = parsed;
   const input = { cwd, args: positionals, flags: values, json: values.json as boolean };
 
-  if (command.graph === false) return command.run(input);
+  const tree = typeof at === "string" ? diskTree(at) : at;
+  if (command.graph === false) return command.run(tree, input);
   let g;
   try {
-    g = loadGraph(typeof at === "string" ? diskTree(at) : at);
+    g = loadGraph(tree);
   } catch (e) {
     // The repo could not be read (schema.yml unparseable, rg missing): a
     // failure, not a usage error.

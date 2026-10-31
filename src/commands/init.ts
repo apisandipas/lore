@@ -1,12 +1,12 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import schema from "../templates/init/schema.yml" with { type: "text" };
 import workflow from "../templates/init/WORKFLOW.md" with { type: "text" };
 import spec from "../templates/init/Spec.md" with { type: "text" };
 import decision from "../templates/init/Decision.md" with { type: "text" };
 import effort from "../templates/init/Effort.md" with { type: "text" };
-import { findRoot } from "../tree";
+import type { Tree } from "../tree";
 import type { Command, Result } from "./shared";
 
 const FILES: [string, string][] = [
@@ -23,29 +23,29 @@ export const INSTALL = "npx skills add apisandipas/lore";
 // installs them; init only looks (see lore:0010).
 const SKILL_DIRS = [".claude/skills", ".agents/skills"];
 
-export async function runInit(cwd: string, opts: { json: boolean; home?: string }): Promise<Result> {
-  const root = findRoot(cwd);
+export function runInit(tree: Tree, opts: { json: boolean; home?: string }): Result {
+  const { root } = tree;
   const created: string[] = [];
   const kept: string[] = [];
   for (const [path, text] of FILES) {
-    const abs = join(root, path);
     // Never overwrite: an existing file may be this project's edited copy.
-    if (existsSync(abs)) {
+    if (tree.exists(path)) {
       kept.push(path);
       continue;
     }
-    mkdirSync(dirname(abs), { recursive: true });
-    await Bun.write(abs, text);
+    tree.write(path, text);
     created.push(path);
   }
 
   const home = opts.home ?? homedir();
+  // The project's skill directories are in the tree; the user's are under ~,
+  // which is not, so they are looked for on the disk.
   const places = [
-    ...SKILL_DIRS.map((d) => ({ label: d, abs: join(root, d) })),
-    ...SKILL_DIRS.map((d) => ({ label: `~/${d}`, abs: join(home, d) })),
+    ...SKILL_DIRS.map((d) => ({ label: d, has: (skill: string) => tree.exists(`${d}/${skill}/SKILL.md`) })),
+    ...SKILL_DIRS.map((d) => ({ label: `~/${d}`, has: (skill: string) => existsSync(join(home, d, skill, "SKILL.md")) })),
   ];
-  const found = places.filter((p) => SKILLS.some((s) => existsSync(join(p.abs, s, "SKILL.md")))).map((p) => p.label);
-  const missing = SKILLS.filter((s) => !places.some((p) => existsSync(join(p.abs, s, "SKILL.md"))));
+  const found = places.filter((p) => SKILLS.some(p.has)).map((p) => p.label);
+  const missing = SKILLS.filter((s) => !places.some((p) => p.has(s)));
 
   if (opts.json) return { code: 0, out: `${JSON.stringify({ root, created, kept, skills: { found, missing } }, null, 2)}\n` };
   const lines = [...created.map((p) => `created ${p}`), ...kept.map((p) => `kept ${p} (already there)`), ""];
@@ -58,4 +58,4 @@ export async function runInit(cwd: string, opts: { json: boolean; home?: string 
   return { code: 0, out: `${lines.join("\n")}\n` };
 }
 
-export const command: Command = { name: "init", flags: {}, graph: false, run: ({ cwd, json }) => runInit(cwd, { json }) };
+export const command: Command = { name: "init", flags: {}, graph: false, run: (tree, { json }) => runInit(tree, { json }) };
