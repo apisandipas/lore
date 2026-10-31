@@ -2,7 +2,7 @@
 
 A CLI that indexes typed Markdown notes and their links to code.
 
-`src/main.ts` dispatches commands; `src/commands/` holds one file per command, and they stay thin. Each exports a `command` declaring its name, the flags it takes and whether it needs the graph; `src/commands/index.ts` lists them, and `main.ts` parses argv with that command's flags and `--json` only. `help.txt` is written by hand; a test keeps it naming each command's flags. Underneath:
+`src/main.ts` dispatches commands; `noteJson` in `src/commands/shared.ts` is the note every `--json` output gives, so front ends can rely on its fields; `src/commands/` holds one file per command, and they stay thin. Each exports a `command` declaring its name, the flags it takes and whether it needs the graph; `src/commands/index.ts` lists them, and `main.ts` parses argv with that command's flags and `--json` only. `help.txt` is written by hand; a test keeps it naming each command's flags. Underneath:
 
 - `src/tree.ts`: the working tree, read, written and searched through one adapter: rg and the disk, or an in-memory map in tests. Nothing else touches the file system, apart from `lore init`.
 - `src/repo.ts` reads `.lore/schema.yml` and lists files; `src/schema.ts` parses note types.

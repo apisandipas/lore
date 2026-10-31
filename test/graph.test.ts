@@ -380,3 +380,21 @@ describe("superseding", () => {
     ]);
   });
 });
+
+describe("--json", () => {
+  test("every note in list, context, next and show carries the fields front ends rely on", async () => {
+    const fixture = join(import.meta.dir, "fixtures", "typed");
+    const json = async (...argv: string[]) => JSON.parse((await run([...argv, "--json"], fixture)).out);
+    const notes = [
+      ...(await json("list")),
+      ...(await json("context", "src/session.ts")).notes,
+      ...(await json("next")).steps,
+      await json("show", "decision/0001"),
+    ];
+    expect(notes.length).toBeGreaterThan(3);
+    for (const n of notes) {
+      expect(Object.keys(n)).toEqual(expect.arrayContaining(["path", "name", "title", "type", "status"]));
+      expect(typeof n.name).toBe("string");
+    }
+  });
+});

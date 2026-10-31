@@ -1,6 +1,6 @@
 import type { Graph } from "../graph";
 import { history } from "../supersede";
-import { label, type Command, type Result } from "./shared";
+import { label, noteJson, type Command, type Result } from "./shared";
 
 export function runShow(g: Graph, args: string[], opts: { json: boolean }): Result {
   const [ref] = args;
@@ -16,11 +16,7 @@ export function runShow(g: Graph, args: string[], opts: { json: boolean }): Resu
 
   if (opts.json) {
     const data = {
-      path: note.path,
-      name: note.name,
-      title: note.title,
-      type: note.type ?? null,
-      status: note.status ?? null,
+      ...noteJson(note),
       summary: note.summary,
       frontmatter: note.frontmatter,
       linksOut,
