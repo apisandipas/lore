@@ -1,9 +1,9 @@
+import { planChange, type Change } from "../change";
 import { createNote, link, updateNote, type Fields } from "../edit";
 import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
 import { linkTargets, NOTE_FILE, type Note } from "../parse";
-import { fieldProblems } from "../validate";
 import { idPattern } from "../schema";
-import { linkTo, type Result } from "./shared";
+import type { Result } from "./shared";
 
 const USAGE = "usage: lore new <type> <title> [--supersedes <note>]... [--link <field>=<note>]...";
 
@@ -48,7 +48,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   }
 
   // Every link is checked before anything is written.
-  const linked = new Map<string, string[]>();
+  const changes = new Map<string, Change>();
   for (const { field, note: ref } of opts.links) {
     // Superseding also rewrites the old note, so it keeps its own flag.
     if (field === SUPERSEDES) return { code: 1, out: `lore new: --link cannot set ${SUPERSEDES}; use --supersedes <note>\n` };
@@ -56,16 +56,13 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
       const fields = Object.keys(def.fields).filter((f) => def.fields[f]!.link && f !== SUPERSEDES);
       return { code: 1, out: `lore new: '${field}' is not a link field of ${def.name} (link fields: ${fields.join(", ") || "none"})\n` };
     }
-    const values = linked.get(field) ?? [];
-    const value = linkTo(g, ref);
-    if (!values.includes(value)) values.push(value);
-    linked.set(field, values);
+    const change = changes.get(field) ?? { field, add: false, values: [] };
+    change.values.push(ref);
+    changes.set(field, change);
   }
-  const fieldValues = new Map([...linked].map(([field, values]) => [field, def.fields[field]!.many || values.length > 1 ? values : values[0]!]));
-  for (const [field, value] of fieldValues) {
-    const [problem] = fieldProblems(g, def, field, value);
-    if (problem) return { code: 1, out: `lore new: --link ${problem}\n` };
-  }
+  const plan = planChange(g, { def }, [...changes.values()]);
+  if ("problem" in plan) return { code: 1, out: `lore new: --link ${plan.problem}\n` };
+  const linked = plan.fields;
 
   let stem = slugify(title) || "untitled";
   if (def.id) {
@@ -82,7 +79,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
   const status = def.fields.status?.enum?.[0];
   if (status) fields.status = status;
   if (olds.length) fields[SUPERSEDES] = olds.map((o) => link(o.name));
-  for (const [field, value] of fieldValues) fields[field] = value;
+  Object.assign(fields, linked);
   // What the old decisions governed, the new one now governs.
   const anchors = [...new Set(olds.flatMap((o) => o.anchors))];
   if (anchors.length) fields.anchors = anchors;
@@ -103,7 +100,7 @@ export async function runNew(g: Graph, args: string[], opts: { supersedes: strin
 
   if (opts.json) {
     const pathOf = (v: string) => g.resolve(linkTargets(v)[0]!).note!.path;
-    const links = Object.fromEntries([...linked].map(([field, values]) => [field, values.map(pathOf)]));
+    const links = Object.fromEntries(Object.entries(linked).map(([field, value]) => [field, (Array.isArray(value) ? value : [value as string]).map(pathOf)]));
     return { code: 0, out: `${JSON.stringify({ path, superseded: olds.map((o) => o.path), links, ambiguous: clashes.map((c) => ({ at: c.at, target: c.target, name: c.was!.name })) }, null, 2)}\n` };
   }
   const lines = [
