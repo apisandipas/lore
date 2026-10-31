@@ -12,22 +12,29 @@ export const org: Syntax = {
   // included, is text.
   header(lines) {
     const fields: Record<string, unknown> = {};
-    const fieldLines: Record<string, number> = {};
+    // The last line for each key, as its value is the last one read.
+    const at = new Map<string, number>();
     let error: string | undefined;
+    let end = 0;
     let i = 0;
     for (; i < lines.length; i++) {
       if (!lines[i]!.trim()) continue;
       const m = ORG_KEYWORD.exec(lines[i]!);
       if (!m) break;
       const key = m[1]!.toLowerCase();
-      fieldLines[key] = i + 1;
+      at.set(key, i);
+      end = i + 1;
       try {
         fields[key] = orgValue(m[2]!.trim());
       } catch (e) {
         error ??= `unreadable #+${m[1]}: ${(e as Error).message}`;
       }
     }
-    return { fields, error, fieldLines, bodyStart: i };
+    const span = (field: string): [number, number] | undefined => {
+      const line = at.get(field.toLowerCase());
+      return line === undefined ? undefined : [line, line + 1];
+    };
+    return { fields, error, bodyStart: i, end, span };
   },
   title: (line) => /^\*+\s+(.*)$/.exec(line)?.[1]!.replace(/\s+:[\w@#%:]+:\s*$/, "").trim(),
   heading: (line, name) => new RegExp(`^\\*+\\s+${escape(name)}\\s*$`, "i").test(line.trim()),

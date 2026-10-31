@@ -5,7 +5,17 @@ import { org } from "./org";
 // fields, headings, links, blocks and checkboxes differs, and each syntax
 // lives in one adapter here.
 
-export type Header = { fields: Record<string, unknown>; error?: string; fieldLines: Record<string, number>; bodyStart: number };
+// A note's header, read once for reading and writing alike. Line numbers are
+// 0-based indexes into the lines it was read from.
+export type Header = {
+  fields: Record<string, unknown>;
+  error?: string;
+  bodyStart: number;
+  // Where a new field goes; -1 when there is no header to add it to.
+  end: number;
+  // A field's lines, [start, stop): its key line and any lines continuing its value.
+  span(field: string): [number, number] | undefined;
+};
 
 export type Syntax = {
   header(lines: string[]): Header;

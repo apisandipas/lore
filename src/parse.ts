@@ -40,7 +40,10 @@ export function linkTargets(text: string): string[] {
 export function parseNote(path: string, text: string): Note {
   const syntax = syntaxOf(path);
   const lines = text.split("\n");
-  const { fields: frontmatter, error: frontmatterError, fieldLines, bodyStart } = syntax.header(lines);
+  const header = syntax.header(lines);
+  const { fields: frontmatter, error: frontmatterError, bodyStart } = header;
+  const fieldLines: Record<string, number> = {};
+  for (const field of Object.keys(frontmatter)) fieldLines[field] = (header.span(field)?.[0] ?? 0) + 1;
   const links: Link[] = [];
   for (const [field, value] of Object.entries(frontmatter)) {
     for (const s of strings(value)) {
