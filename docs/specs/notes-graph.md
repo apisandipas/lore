@@ -2,6 +2,7 @@
 type: Spec
 status: accepted
 issue: https://github.com/apisandipas/lore/issues/20
+anchors: [src/graph-page/**, src/commands/graph.ts]
 ---
 # Notes graph
 

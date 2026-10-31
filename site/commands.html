@@ -42,6 +42,7 @@
         <li><a href="#list">list</a></li>
         <li><a href="#check">check</a></li>
         <li><a href="#next">next</a></li>
+        <li><a href="#graph">graph</a></li>
         <li><a href="#new">new</a></li>
         <li><a href="#set">set</a></li>
         <li><a href="#tick">tick</a></li>
@@ -54,7 +55,7 @@
 
   <p class="kicker">Reference</p>
   <h1>Commands</h1>
-  <p class="lede">Ten commands. Five read, four write, and <code>init</code> sets a repo up. Anywhere a command takes a note, give its <a href="concepts.html#names">name</a>, <code>spec/auth</code> or <code>decision/0002</code>, or a filename, path, alias or number that names only one note.</p>
+  <p class="lede">Eleven commands. Six read the notes, four write them, and <code>init</code> sets a repo up. Anywhere a command takes a note, give its <a href="concepts.html#names">name</a>, <code>spec/auth</code> or <code>decision/0002</code>, or a filename, path, alias or number that names only one note.</p>
 
   <h2 id="overview">Overview</h2>
   <div class="table-wrap">
@@ -66,6 +67,7 @@
         <tr><td><a href="#list"><code>list</code></a></td><td>Every note, one per line.</td></tr>
         <tr><td><a href="#check"><code>check</code></a></td><td>Every problem with the notes. Exits 1 if there is one.</td></tr>
         <tr><td><a href="#next"><code>next</code></a></td><td>What to do next, and the skill that does it.</td></tr>
+        <tr><td><a href="#graph"><code>graph [&lt;note&gt;]</code></a></td><td>The notes as an interactive graph, one HTML page.</td></tr>
         <tr><td><a href="#new"><code>new &lt;type&gt; &lt;title&gt;</code></a></td><td>Create a note from the type’s template.</td></tr>
         <tr><td><a href="#set"><code>set &lt;note&gt; &lt;field&gt;=&lt;value&gt;…</code></a></td><td>Change fields, checked against the schema.</td></tr>
         <tr><td><a href="#tick"><code>tick &lt;note&gt;</code></a></td><td>Tick the first open checklist item.</td></tr>
@@ -194,6 +196,24 @@ pkg/billing/charge.ts:6: citation 'lore:decision/0009' matches no note
       </tbody>
     </table>
   </div>
+
+  <h2 id="graph" class="cmd-head"><code>lore graph [&lt;note&gt;]</code></h2>
+  <p>Writes the notes as one HTML page you open in a browser: an interactive graph of specs, efforts and decisions and the links between them, for people who would rather look than run commands. It prints the page’s path. The page needs nothing else, no server and no network, so you can send it to someone or publish it.</p>
+  <dl class="options">
+    <dt>--out &lt;file&gt;</dt><dd>Write the page here. Without it, <code>lore-graph.html</code> in the temp directory.</dd>
+    <dt>--depth &lt;n&gt;</dt><dd>With a note, how many links out from it to show (default 2).</dd>
+    <dt>--open</dt><dd>Open the page in the browser.</dd>
+  </dl>
+  <div class="term">
+    <div class="term-bar"><span class="where">~/app</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="cmd">lore graph --open</span>
+<span class="out">/tmp/lore-graph.html</span>
+<span class="cmd">lore graph spec/due-dates --depth 1 --out docs/graph.html</span>
+<span class="out">/home/you/app/docs/graph.html</span></code></pre>
+  </div>
+  <p>Notes are coloured by type. A superseded or retired note is faded, a draft is hollow, and an effort whose spec changed under it has a red ring. A link to a note that does not exist shows as a faint dashed node. The code layer, off until you tick it, adds the code that anchors claim and the files that cite notes.</p>
+  <p>Click a note to read it in the side panel, with what it links to and what links to it; <em>Focus here</em> narrows the graph to the notes near it. Given a note, <code>lore graph</code> opens focused on it. The address keeps what you are looking at, so you can share a link to it: <code>#note=spec/due-dates</code>, <code>#focus=spec/due-dates&amp;depth=1</code>, <code>#code</code>. Press <kbd>/</kbd> to search, <kbd>Esc</kbd> to close the panel or leave focus, and the arrow keys and <kbd>Enter</kbd> to follow the open note’s links.</p>
+  <p>The same notes always give the same page, byte for byte, so a page published from CI changes only when the notes do. <code>--json</code> prints the graph’s nodes and edges instead, for other front ends.</p>
 
   <h2 id="new" class="cmd-head"><code>lore new &lt;type&gt; &lt;title&gt;</code></h2>
   <p>Creates a note in the type’s directory from <code>.lore/templates/&lt;Type&gt;.md</code> (or <code>.org</code>), numbered if the type has an <code>id</code>, starting at the first status in its enum.</p>

@@ -1,6 +1,6 @@
 ---
 type: Effort
-status: active
+status: done
 specs: ["[[spec/notes-graph]]"]
 issue: https://github.com/apisandipas/lore/issues/20
 frozen:
@@ -21,4 +21,4 @@ Two halves with a JSON seam between them. `src/graph-page/data.ts` turns a Graph
 - [x] `lore graph <note> [--depth N]` opens focused (`#focus=` with depth, default 2); a note that resolves to nothing or several is exit 1 with `find`'s message; a bad `--depth` is exit 2; `--open` opens the browser. Tests for each but `--open`
 - [x] The DOM-free script in its own module with tests: only `http:`, `https:`, `mailto:` and relative links become clickable; starting positions seeded from node ids, the same on every load; overlapping labels hidden, busiest first; Markdown and Org bodies rendered as the prototype does
 - [x] In the page: ghost nodes drawn faint with dashed edges; `#note=<name>` selects a note and is kept in the address as you select; Esc closes the panel or leaves focus, `/` searches, arrows step through the selected note's links. Checked in headless Chrome on lore's and imp's notes with no console errors
-- [ ] Docs: `lore graph` on the site's commands page and in the README if it lists commands; CONTEXT.md describes `src/graph-page/`; the spec gains `anchors:` for `src/graph-page/**` and `src/commands/graph.ts`; `lore check` and the tests pass
+- [x] Docs: `lore graph` on the site's commands page and in the README if it lists commands; CONTEXT.md describes `src/graph-page/`; the spec gains `anchors:` for `src/graph-page/**` and `src/commands/graph.ts`; `lore check` and the tests pass

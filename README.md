@@ -99,6 +99,7 @@ anchors: [pkg/auth/**, "symbol:SessionManager"]
 | `lore tick <note>` | Ticks the first open checklist item and names the next one, or says every item is done. |
 | `lore freeze <note>` | Records the current version of every spec the note links to. |
 | `lore next` | What to do next and which `lore-*` skill does it, read from spec and effort state: a spec that changed under an effort, an effort ready to ship, the next open item, an accepted spec with no effort or changed since its efforts shipped, a draft spec. |
+| `lore graph [<note>]` | Writes the notes as one self-contained HTML page, an interactive graph in the spirit of Obsidian's: notes coloured by type, links between them, the code they govern on request, and each note readable in a side panel. Prints the page's path; `--out <file>` chooses it and `--open` opens it. With a note, the page opens focused on it, `--depth <n>` links out (default 2). |
 
 Every command except `help` and `version` takes `--json`.
 
