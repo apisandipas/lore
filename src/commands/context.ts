@@ -1,5 +1,6 @@
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { SUPERSEDES, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { current, SUPERSEDES, supersedes } from "../supersede";
 import type { Note } from "../parse";
 import { openSession } from "../session";
 import { label, type Result } from "./shared";
@@ -68,7 +69,7 @@ export function contextFor(g: Graph, files: string[]): Match[] {
 
   // A superseded note stands in for the decision now in force.
   for (const m of [...matches.values()]) {
-    const now = g.current(m.note);
+    const now = current(g, m.note);
     if (now === m.note) continue;
     matches.delete(m.note.path);
     for (const reason of m.reasons) add(now, m.rank, m.specificity, `${reason} (via superseded ${m.note.name})`);
@@ -98,8 +99,7 @@ export function renderContext(
   for (const m of matches) {
     const body = opts.full && m.note.body ? `\n${indent(m.note.body)}\n` : "";
     const summary = m.note.summary ? `  ${m.note.summary}\n` : "";
-    const history = g
-      .supersedes(m.note)
+    const history = supersedes(g, m.note)
       .map((old) => `  supersedes ${old.name}: ${old.summary || old.title}\n`)
       .join("");
     const entry = `\n${label(m.note)}\n  ${m.note.path}\n  matched: ${m.reasons.join("; ")}\n${summary}${history}${body}`;
@@ -151,7 +151,7 @@ export function runContext(
       status: m.note.status ?? null,
       summary: m.note.summary,
       matched: m.reasons,
-      supersedes: g.supersedes(m.note).map((o) => o.path),
+      supersedes: supersedes(g, m.note).map((o) => o.path),
       ...(opts.full ? { body: m.note.body } : {}),
     }));
     session?.saw(matches.map((m) => m.note));

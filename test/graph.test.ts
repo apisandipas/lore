@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { checkGraph } from "../src/commands/check";
 import { loadGraph } from "../src/graph";
 import { drift, plans } from "../src/plan";
+import { supersedeProblems } from "../src/supersede";
 import { run } from "../src/main";
 import { diskTree, memoryTree } from "../src/tree";
 
@@ -297,5 +298,62 @@ describe("anchors", () => {
       "src/billing/charge.ts": "",
     });
     expect((await run(["context", "src/billing/refund.ts"], tree)).out).toContain("Money in cents");
+  });
+});
+
+describe("superseding", () => {
+  const decisions = () =>
+    memoryTree({
+      ".lore/schema.yml": `types:
+  Decision:
+    dir: docs/decisions
+    id: "{n:4}"
+    fields:
+      status: { enum: [accepted, superseded], required: true }
+      supersedes: { link: Decision, many: true }
+`,
+      "docs/decisions/0001-hard-expiry.md": "---\ntype: Decision\nstatus: accepted\nanchors: [src/session.ts]\n---\n# Hard expiry\n",
+      "docs/decisions/0002-tokens.md": "---\ntype: Decision\nstatus: accepted\nanchors: [src/token.ts]\n---\n# Tokens\n",
+      "src/session.ts": "// see lore:decision/0001\n",
+      "src/token.ts": "",
+    });
+
+  test("what new --supersedes writes is what check requires", async () => {
+    const tree = decisions();
+    const { code, out } = await run(["new", "Decision", "Sliding expiry", "--supersedes", "0001", "--supersedes", "0002"], tree);
+    expect([code, out]).toEqual([0, "created docs/decisions/0003-sliding-expiry.md\nmarked docs/decisions/0001-hard-expiry.md superseded and moved its anchors\nmarked docs/decisions/0002-tokens.md superseded and moved its anchors\n"]);
+    expect(tree.read("docs/decisions/0003-sliding-expiry.md")).toBe(
+      '---\ntype: Decision\nstatus: accepted\nsupersedes: ["[[decision/0001-hard-expiry]]", "[[decision/0002-tokens]]"]\nanchors: [src/session.ts, src/token.ts]\n---\n# Sliding expiry\n',
+    );
+    // Only the citation of the old decision is left to fix, as check says.
+    expect(checkGraph(loadGraph(tree)).map((p) => `${p.file}:${p.line}: ${p.message}`)).toEqual([
+      "src/session.ts:1: cites superseded 'decision/0001-hard-expiry'; cite lore:decision/0003-sliding-expiry instead",
+    ]);
+    tree.write("src/session.ts", "// see lore:decision/0003\n");
+    expect(checkGraph(loadGraph(tree))).toEqual([]);
+  });
+
+  test("refuses to supersede a note twice, before writing anything", async () => {
+    const tree = decisions();
+    await run(["new", "Decision", "Sliding expiry", "--supersedes", "0001"], tree);
+    const before = tree.files();
+    expect((await run(["new", "Decision", "Again", "--supersedes", "0002", "--supersedes", "0001"], tree)).out).toBe(
+      "lore new: decision/0001-hard-expiry is already superseded by decision/0003-sliding-expiry\n",
+    );
+    expect(tree.files()).toEqual(before);
+    expect(tree.read("docs/decisions/0002-tokens.md")).toContain("status: accepted");
+  });
+
+  test("supersedeProblems reports each rule of superseding", () => {
+    const tree = decisions();
+    tree.write("docs/decisions/0001-hard-expiry.md", "---\ntype: Decision\nstatus: superseded\nanchors: [src/session.ts]\n---\n# Hard expiry\n");
+    tree.write("docs/decisions/0003-orphan.md", "---\ntype: Decision\nstatus: superseded\n---\n# Orphan\n");
+    tree.write("docs/decisions/0004-sliding.md", '---\ntype: Decision\nstatus: accepted\nsupersedes: ["[[0001]]", "[[0002]]"]\n---\n# Sliding\n');
+    expect(supersedeProblems(loadGraph(tree)).map((p) => `${p.file}:${p.line}: ${p.message}`)).toEqual([
+      "docs/decisions/0001-hard-expiry.md:4: superseded note still anchors code; move its anchors to decision/0004-sliding",
+      "docs/decisions/0003-orphan.md:3: superseded, but no note supersedes it",
+      "docs/decisions/0004-sliding.md:4: supersedes decision/0002-tokens, but decision/0002-tokens is accepted",
+      "src/session.ts:1: cites superseded 'decision/0001-hard-expiry'; cite lore:decision/0004-sliding instead",
+    ]);
   });
 });

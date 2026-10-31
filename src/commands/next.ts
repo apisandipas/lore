@@ -1,4 +1,5 @@
-import { ACTIVE, DONE, DRAFT, RETIRED, SUPERSEDED, type Graph } from "../graph";
+import { ACTIVE, DONE, DRAFT, RETIRED, type Graph } from "../graph";
+import { SUPERSEDED } from "../supersede";
 import type { Note } from "../parse";
 import { drift, frozen, plans } from "../plan";
 import { label, type Result } from "./shared";

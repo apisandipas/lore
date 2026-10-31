@@ -1,6 +1,7 @@
 import { planChange, type Change } from "../change";
 import { updateNote } from "../edit";
-import { SUPERSEDED, SUPERSEDES, type Graph } from "../graph";
+import type { Graph } from "../graph";
+import { superseding } from "../supersede";
 import { render } from "../syntax/markdown";
 import type { Result } from "./shared";
 
@@ -29,7 +30,7 @@ export async function runSet(g: Graph, args: string[], opts: { json: boolean }):
 
   // Superseding also rewrites the old note, so it keeps its own command.
   for (const { field, values } of changes.values()) {
-    if (field === SUPERSEDES || (field === "status" && values.includes(SUPERSEDED))) {
+    if (superseding(field, values)) {
       return fail(`supersede with lore new <type> <title> --supersedes ${note.name}`);
     }
   }

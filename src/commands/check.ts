@@ -1,5 +1,6 @@
-import { names, SUPERSEDED, type Graph } from "../graph";
-import type { Note } from "../parse";
+import { names, type Graph } from "../graph";
+import { fieldLine, type Note } from "../parse";
+import { supersedeProblems } from "../supersede";
 import { drift } from "../plan";
 import { fieldProblems } from "../validate";
 import type { Result } from "./shared";
@@ -24,20 +25,14 @@ export function checkGraph(g: Graph): Problem[] {
       if (!g.anchor(anchor).files().length) at(fieldLine(note, "anchors"), `anchor '${anchor}' matches no files`);
     }
     checkSchema(g, note, at);
-    checkSuperseding(g, note, at);
     checkFrozen(g, note, at);
   }
 
   for (const c of g.citations) {
     const r = g.resolve(c.target);
-    if (!r.note) {
-      problems.push({ file: c.file, line: c.line, message: `citation ${target(`lore:${c.target}`, r.candidates)}` });
-    } else if (r.note.status === SUPERSEDED) {
-      const now = g.current(r.note);
-      const advice = now === r.note ? "" : `; cite lore:${now.name} instead`;
-      problems.push({ file: c.file, line: c.line, message: `cites superseded '${r.note.name}'${advice}` });
-    }
+    if (!r.note) problems.push({ file: c.file, line: c.line, message: `citation ${target(`lore:${c.target}`, r.candidates)}` });
   }
+  problems.push(...supersedeProblems(g));
 
   return problems.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 }
@@ -57,32 +52,11 @@ function checkSchema(g: Graph, note: Note, at: At) {
   }
 }
 
-function checkSuperseding(g: Graph, note: Note, at: At) {
-  if (note.status === SUPERSEDED) {
-    const successors = g.supersededBy(note);
-    if (!successors.length) at(fieldLine(note, "status"), "superseded, but no note supersedes it");
-    if (note.anchors.length) {
-      const to = successors[0] ? ` to ${g.current(note).name}` : "";
-      at(fieldLine(note, "anchors"), `superseded note still anchors code; move its anchors${to}`);
-    }
-  }
-  for (const old of g.supersedes(note)) {
-    if (old.status !== SUPERSEDED) {
-      at(fieldLine(note, "supersedes"), `supersedes ${old.name}, but ${old.name} is ${old.status ?? "missing a status"}`);
-    }
-  }
-}
-
 function checkFrozen(g: Graph, note: Note, at: At) {
   for (const { path, gone } of drift(g, note)) {
     const message = gone ? `frozen ${path} no longer exists` : `${path} changed since this was frozen; review the plan, then run lore freeze ${note.name}`;
     at(fieldLine(note, "frozen"), message);
   }
-}
-
-// The line of a frontmatter key, or 1 when the key is absent.
-function fieldLine(note: Note, field: string): number {
-  return note.links.find((l) => l.field === field)?.line ?? note.fieldLines[field] ?? 1;
 }
 
 export function runCheck(g: Graph, opts: { json: boolean }): Result {

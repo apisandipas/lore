@@ -37,6 +37,11 @@ export function linkTargets(text: string): string[] {
   return markdown.links(text, "");
 }
 
+// The line of a frontmatter key, or 1 when the key is absent.
+export function fieldLine(note: Note, field: string): number {
+  return note.links.find((l) => l.field === field)?.line ?? note.fieldLines[field] ?? 1;
+}
+
 export function parseNote(path: string, text: string): Note {
   const syntax = syntaxOf(path);
   const lines = text.split("\n");
