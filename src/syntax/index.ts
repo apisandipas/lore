@@ -5,6 +5,9 @@ import { org } from "./org";
 // fields, headings, links, blocks and checkboxes differs, and each syntax
 // lives in one adapter here.
 
+// A field value: a scalar, a list, or a map of scalars.
+export type Value = string | string[] | Record<string, string>;
+
 // A note's header, read once for reading and writing alike. Line numbers are
 // 0-based indexes into the lines it was read from.
 export type Header = {
@@ -29,6 +32,12 @@ export type Syntax = {
   fence: RegExp;
   checkbox: RegExp;
   links(line: string, notePath: string): string[];
+  // Sets a field, adding the header if there is none, or removes it, leaving
+  // the rest of the text alone; what is written reads back as the same value.
+  setField(text: string, field: string, value: Value): string;
+  removeField(text: string, field: string): string;
+  // The line with its checkbox ticked.
+  tick(line: string): string;
 };
 
 export function isOrg(path: string): boolean {

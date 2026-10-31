@@ -1,10 +1,11 @@
 import { dirname, normalize } from "node:path";
-import type { Syntax } from ".";
+import type { Syntax, Value } from ".";
+import { scalar } from "./markdown";
+import { escape, tickBox } from "./text";
 
 // [[target]], [[target][label]]
 const ORG_LINK = /\[\[([^\[\]\n]+)\](?:\[[^\[\]\n]*\])?\]/g;
 export const ORG_KEYWORD = /^#\+([\w-]+):[ \t]*(.*)$/;
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const org: Syntax = {
   // The #+key: lines at the top, before anything else. A value in brackets or
@@ -55,9 +56,46 @@ export const org: Syntax = {
       return [target];
     });
   },
+  setField(text, field, value) {
+    const lines = text.split("\n");
+    const { end, span } = org.header(lines);
+    const at = span(field)?.[0];
+    // Keep the key as the file spells it: #+TITLE stays upper case.
+    if (at !== undefined) lines[at] = `#+${ORG_KEYWORD.exec(lines[at]!)![1]}: ${render(value)}`;
+    else lines.splice(end, 0, `#+${field}: ${render(value)}`);
+    return lines.join("\n");
+  },
+  removeField(text, field) {
+    const lines = text.split("\n");
+    const at = org.header(lines).span(field)?.[0];
+    if (at !== undefined) lines.splice(at, 1);
+    return lines.join("\n");
+  },
+  // Org reads only an upper-case X as done, and [-] is a started item.
+  tick: (line) => tickBox(org.checkbox, line, "X"),
 };
 
+// A value in brackets or quotes is YAML; anything else, links included, is text.
+// Reading and writing both ask this, so a value reads back as it was written.
+function isYaml(text: string): boolean {
+  return /^[\[{"']/.test(text) && !text.startsWith("[[");
+}
+
 function orgValue(text: string): unknown {
-  if (!/^[\[{"']/.test(text) || text.startsWith("[[")) return text;
+  if (!isYaml(text)) return text;
   return (Bun.YAML.parse(`v: ${text}`) as { v: unknown }).v;
+}
+
+// Text is written as it is; it is quoted only when it would otherwise read as
+// YAML, or lose its spaces. A list of links is written the way Org reads links,
+// one after another.
+function render(value: Value): string {
+  if (typeof value === "string") return isYaml(value) || value !== value.trim() || value.includes("\n") || !value ? JSON.stringify(value) : value;
+  if (Array.isArray(value)) {
+    if (value.length && value.every((v) => /^\[\[[^\[\]]+\]\]$/.test(v))) return value.join(" ");
+    return `[${value.map((v) => scalar(v, true)).join(", ")}]`;
+  }
+  return `{${Object.entries(value)
+    .map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`)
+    .join(", ")}}`;
 }
