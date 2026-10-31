@@ -1,4 +1,4 @@
-import type { Tree } from "./tree";
+import { literal, wordRegExp, type Tree } from "./tree";
 
 // How a note claims code: a path (pkg/auth), a glob (pkg/auth/**), or
 // symbol:Name, any file using that word. Parsed once; every question about
@@ -43,7 +43,7 @@ function parse({ tree, files, isNoteFile }: Scope, fileSet: Set<string>, text: s
 
   if (text.startsWith(SYMBOL)) {
     const name = text.slice(SYMBOL.length).trim();
-    const word = new RegExp(String.raw`(?<!\w)(?:${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?!\w)`);
+    const word = wordRegExp(literal(name));
     const code = (file: string) => fileSet.has(file) && !isNoteFile(file);
     return {
       text,

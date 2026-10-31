@@ -19,6 +19,20 @@ export type Tree = {
   search(pattern: string, opts?: { fixed?: boolean; word?: boolean }): Hit[];
 };
 
+// A pattern matched as a whole word, as `rg -w` reads one: letters and digits
+// of any script, marks and connectors are word characters. The memory tree
+// searches with it, and symbol anchors test one file with it.
+export function wordRegExp(source: string, flags = ""): RegExp {
+  return new RegExp(`(?<!${WORD_CHAR})(?:${source})(?!${WORD_CHAR})`, `${flags}u`);
+}
+
+// Text as a pattern that matches it literally.
+export function literal(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const WORD_CHAR = String.raw`[\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\p{Join_Control}]`;
+
 // The repo root is the nearest directory holding `.lore/`, stopping at the git
 // root so a stray `.lore/` above the repo is never picked up.
 export function findRoot(start: string): string {
@@ -75,9 +89,8 @@ export function memoryTree(files: Record<string, string>, root = "/memory"): Tre
     exists: (path) => map.has(path) || [...map.keys()].some((f) => f.startsWith(`${path.replace(/\/$/, "")}/`)),
     write: (path, text) => void map.set(path, text),
     search: (pattern, opts = {}) => {
-      let source = opts.fixed ? pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : pattern;
-      if (opts.word) source = String.raw`(?<!\w)(?:${source})(?!\w)`;
-      const re = new RegExp(source, "g");
+      const source = opts.fixed ? literal(pattern) : pattern;
+      const re = opts.word ? wordRegExp(source, "g") : new RegExp(source, "g");
       const hits: Hit[] = [];
       for (const file of [...map.keys()].sort()) {
         map

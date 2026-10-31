@@ -17,5 +17,5 @@ One module says which files an anchor governs, so listing an anchor's files and 
 ## Tasks
 
 - [x] Add `src/anchor.ts` with `kind`, `name`, `files()`, `covers(file)` and `specificity`; Graph exposes `anchor(text)` and drops `anchorFiles`, `anchorMatches` and `anchorSpecificity`; check, show and context use it and no caller slices `symbol:` or normalises a path; tests pass
-- [ ] `covers()` matches symbol words as `rg -w` does in any script; the agreement test runs through the Anchor interface and includes a symbol beside a non-ASCII letter
+- [x] `covers()` matches symbol words as `rg -w` does in any script; the agreement test runs through the Anchor interface and includes a symbol beside a non-ASCII letter
 - [ ] CONTEXT.md describes `src/anchor.ts`; `lore check` and the tests pass; nothing user-visible beyond the fix, so `site/` stays as it is unless a check says otherwise
