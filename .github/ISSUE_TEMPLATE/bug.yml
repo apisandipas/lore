@@ -1,0 +1,44 @@
+name: Bug report
+description: Something lore does wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What lore did, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, starting from a repo with `.lore/`, and the notes they read.
+      placeholder: |
+        1. lore new Spec "Due dates"
+        2. lore check
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `lore --version`.
+      placeholder: 0.1.0-alpha.4
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Your OS, and how you installed lore (binary, Homebrew, npm, Nix).
+      placeholder: Linux x86_64, Nix flake
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Your `.lore/schema.yml`, or the parts of it that might matter. Leave empty if it is the one `lore init` writes.
+      render: yaml

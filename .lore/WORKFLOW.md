@@ -4,10 +4,18 @@ How this project uses lore. The `lore-*` skills read this file before they act, 
 
 ## Notes
 
-- **Spec** (`docs/specs`): what something should do and what it leaves out. `draft` while it is worked out, `accepted` once agreed, `retired` when it no longer applies. Specs are edited in place.
-- **Effort** (`docs/efforts`): one piece of work against one or more specs. It names them in `specs:` and lists its tasks as a Markdown checklist. `planned`, then `active`, then `done`.
+- **Spec** (`docs/specs`): what something should do and what it leaves out. `draft` while it is worked out, `accepted` once agreed, `retired` when it no longer applies. Specs are edited in place. `issue:` names the GitHub issue it came from, if any.
+- **Effort** (`docs/efforts`): one piece of work against one or more specs, built on one `feat/` or `refactor/` branch. It names the specs in `specs:` and the issue it closes in `issue:`, and lists its tasks as a Markdown checklist. `planned`, then `active`, then `done`.
 - **Decision** (`docs/decisions`, numbered): a choice, the context that forced it, and its consequences. Once `accepted` it is never edited; a change of mind is a new decision made with `lore new Decision "<title>" --supersedes <id>`.
 - **CONTEXT.md**: what a directory holds and the rules for code in it. It applies to everything beneath it.
+
+## Where work starts
+
+Ideas, bugs and refactors arrive as GitHub Issues, and GitHub, not `lore next`, is the list of what to do next. An issue is the problem and the discussion; a spec is what was agreed; an effort is the work; the PR or merge commit says `Closes #N`, so the issue closes when the work ships, not when its spec is accepted. Small work needs only the issue.
+
+- A feature issue is labelled `needs-spec` until its spec is accepted, then `specced`. The spec's `issue:` and the effort's `issue:` are the issue's URL, and the issue gets a comment linking the accepted spec.
+- A `refactor` issue changes no behaviour, so it needs no new spec: its effort, if it needs one, is planned against the specs the code already meets.
+- If discussion on an issue changes what was agreed, the spec changes with it.
 
 ## Size
 
