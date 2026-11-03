@@ -6,6 +6,8 @@ types:
     dir: docs/specs
     fields:
       status: { enum: [draft, accepted, retired], required: true }
+      # The issue it came from, as an ID or URL.
+      issue: {}
   Decision:
     dir: docs/decisions
     id: "{n:4}"
@@ -19,3 +21,5 @@ types:
     fields:
       specs: { link: Spec, many: true, required: true }
       status: { enum: [planned, active, done] }
+      # The issue it closes, as an ID or URL.
+      issue: {}

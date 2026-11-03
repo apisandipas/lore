@@ -4,10 +4,20 @@ How this project uses lore. The `lore-*` skills read this file before they act, 
 
 ## Notes
 
-- **Spec** (`docs/specs`): what something should do and what it leaves out. `draft` while it is worked out, `accepted` once agreed, `retired` when it no longer applies. Specs are edited in place.
-- **Effort** (`docs/efforts`): one piece of work against one or more specs. It names them in `specs:` and lists its tasks as a Markdown checklist. `planned`, then `active`, then `done`.
+- **Spec** (`docs/specs`): what something should do and what it leaves out. `draft` while it is worked out, `accepted` once agreed, `retired` when it no longer applies. Specs are edited in place. `issue:` names the issue it came from, if any.
+- **Effort** (`docs/efforts`): one piece of work against one or more specs. It names them in `specs:`, names the issue it closes in `issue:`, and lists its tasks as a Markdown checklist. `planned`, then `active`, then `done`.
 - **Decision** (`docs/decisions`, numbered): a choice, the context that forced it, and its consequences. Once `accepted` it is never edited; a change of mind is a new decision made with `lore new Decision "<title>" --supersedes <id>`.
 - **CONTEXT.md**: what a directory holds and the rules for code in it. It applies to everything beneath it.
+
+## Where work starts
+
+Ideas, bugs and refactors arrive as issues in the project's tracker, and the tracker, not `lore next`, is the list of what to do next. An issue is the problem and the discussion; a spec is what was agreed; an effort is the work. The PR or merge commit closes the issue, so it closes when the work ships, not when its spec is accepted. Small work needs only the issue.
+
+- `issue:` on a spec or effort holds the issue's ID or URL. When a spec is accepted, the issue gets a comment linking it.
+- A feature issue waits for an accepted spec before it is built. A refactor changes no behaviour, so it needs no new spec.
+- If discussion on an issue changes what was agreed, the spec changes with it.
+
+Name the tracker here when the project has one: where issues live, how they are named, and the words a PR uses to close one.
 
 ## Size
 
