@@ -281,7 +281,7 @@ A field can be `required`, limited to an `enum`, or a `link` to another type, op
 
 ## Status
 
-Working now: everything above. The skills are new and have not yet carried a real project from spec to ship.
+Working now: everything above. lore is alpha, but the workflow has carried real projects from spec to ship: 83 efforts across five projects, the largest with 57 efforts, 48 specs and 20 decisions.
 
 lore's design decisions are recorded as lore notes in [`docs/decisions`](docs/decisions); `lore list --summaries` in this repo is a quick tour.
 
